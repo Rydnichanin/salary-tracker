@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Автоподсчёт зарплаты</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body { font-family: Arial; max-width: 800px; margin: auto; padding: 20px; }
+input, button { padding: 5px; margin: 5px 0; width: 100%; }
+#history { margin-top: 20px; }
+.history-item { display: flex; justify-content: space-between; margin: 5px 0; }
+canvas { margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h2>Учёт зарплаты</h2>
+
+<label>Дата транзакции:</label>
+<input type="date" id="transDate">
+
+<label>Сумма (положительное число — аванс, отрицательное — выплата):</label>
+<input type="number" id="change">
+
+<button onclick="addTransaction()">Добавить транзакцию</button>
+
+<div id="history"></div>
+<div id="result"></div>
+
+<canvas id="salaryChart" width="700" height="300"></canvas>
+
+<script>
+let rate = 15000;
+let startDate = new Date("2025-10-23");
+let transactions = [];
+
+// Подсчёт баланса по дням
+function calculateBalance() {
+    let today = new Date();
+    let daysWorked = Math.floor((today - startDate)/(1000*60*60*24)) + 1;
+    let balanceByDay = [];
+    let total = 0;
+
+    for (let i=0; i<daysWorked; i++) {
+        total += rate;
+        let currentDate = new Date(startDate);
+        currentDate.setDate(currentDate.getDate() + i);
+        transactions.forEach(t => {
+            let tDate = new Date(t.date);
+            if (tDate.toDateString() === currentDate.toDateString()) total -= t.amount;
+        });
+        balanceByDay.push({date: new Date(currentDate), balance: total});
+    }
+    return balanceByDay;
+}
+
+// Добавление транзакции
+function addTransaction() {
+    let dateInput = document.getElementById('transDate').value;
+    let amount = parseFloat(document.getElementById('change').value);
+    if (!dateInput || isNaN(amount)) return;
+
+    transactions.push({date: dateInput, amount: amount});
+    document.getElementById('transDate').value = "";
+    document.getElementById('change').value = "";
+    updateDisplay();
+}
+
+// Обновление отображения
+function updateDisplay() {
+    let historyHTML = "<h3>История транзакций:</h3>";
+    transactions.forEach((t,i)=>historyHTML+=`<div>${t.date}: ${t.amount>0?'+':'-'}${Math.abs(t.amount)}</div>`);
+    document.getElementById('history').innerHTML = historyHTML;
+
+    let balanceByDay = calculateBalance();
+    let totalBalance = balanceByDay[balanceByDay.length-1]?.balance || 0;
+    document.getElementById('result').innerHTML = `<h3>Итог: ${totalBalance.toLocaleString('ru-RU')} тенге</h3>`;
+
+    drawChart(balanceByDay);
+}
+
+// График
+function drawChart(balanceByDay) {
+    const ctx = document.getElementById('salaryChart').getContext('2d');
+    if(window.salaryChartInstance) window.salaryChartInstance.destroy();
+    window.salaryChartInstance = new Chart(ctx,{
+        type:'line',
+        data:{
+            labels: balanceByDay.map(b=>b.date.toISOString().split('T')[0]),
+            datasets:[{
+                label:'Баланс',
+                data: balanceByDay.map(b=>b.balance),
+                borderColor:'green',
+                fill:false,
+                tension:0.3
+            }]
+        }
+    });
+}
+
+updateDisplay();
+</script>
+</body>
+</html>
