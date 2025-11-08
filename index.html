@@ -30,11 +30,14 @@ canvas { margin-top: 20px; }
 <canvas id="salaryChart" width="700" height="300"></canvas>
 
 <script>
+// ----- Настройки -----
 let rate = 15000;
 let startDate = new Date("2025-10-23");
-let transactions = [];
 
-// Подсчёт баланса по дням
+// ----- Загрузка транзакций из LocalStorage -----
+let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+// ----- Подсчёт баланса по дням -----
 function calculateBalance() {
     let today = new Date();
     let daysWorked = Math.floor((today - startDate)/(1000*60*60*24)) + 1;
@@ -54,32 +57,41 @@ function calculateBalance() {
     return balanceByDay;
 }
 
-// Добавление транзакции
+// ----- Добавление транзакции -----
 function addTransaction() {
     let dateInput = document.getElementById('transDate').value;
     let amount = parseFloat(document.getElementById('change').value);
     if (!dateInput || isNaN(amount)) return;
 
     transactions.push({date: dateInput, amount: amount});
+
+    // Сохраняем в LocalStorage
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+
     document.getElementById('transDate').value = "";
     document.getElementById('change').value = "";
     updateDisplay();
 }
 
-// Обновление отображения
+// ----- Отображение истории и баланса -----
 function updateDisplay() {
+    // История транзакций
     let historyHTML = "<h3>История транзакций:</h3>";
-    transactions.forEach((t,i)=>historyHTML+=`<div>${t.date}: ${t.amount>0?'+':'-'}${Math.abs(t.amount)}</div>`);
+    transactions.forEach((t,i)=>{
+        historyHTML += `<div>${t.date}: ${t.amount>0?'+':'-'}${Math.abs(t.amount)}</div>`;
+    });
     document.getElementById('history').innerHTML = historyHTML;
 
+    // Баланс
     let balanceByDay = calculateBalance();
     let totalBalance = balanceByDay[balanceByDay.length-1]?.balance || 0;
     document.getElementById('result').innerHTML = `<h3>Итог: ${totalBalance.toLocaleString('ru-RU')} тенге</h3>`;
 
+    // График
     drawChart(balanceByDay);
 }
 
-// График
+// ----- Построение графика -----
 function drawChart(balanceByDay) {
     const ctx = document.getElementById('salaryChart').getContext('2d');
     if(window.salaryChartInstance) window.salaryChartInstance.destroy();
@@ -98,6 +110,7 @@ function drawChart(balanceByDay) {
     });
 }
 
+// ----- Инициализация -----
 updateDisplay();
 </script>
 </body>
