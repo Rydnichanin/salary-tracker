@@ -6,10 +6,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body { font-family: Arial; max-width: 800px; margin: auto; padding: 20px; }
-input, button { padding: 5px; margin: 5px 0; width: 100%; }
+input, button { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box; }
 #history { margin-top: 20px; }
-.history-item { display: flex; justify-content: space-between; margin: 5px 0; }
-canvas { margin-top: 20px; }
+.history-item { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; gap: 8px; }
+.history-left { flex: 1; }
+.history-actions { display: flex; gap: 6px; }
+.small-btn { padding: 4px 8px; width: auto; }
+canvas { margin-top: 20px; max-width: 100%; }
 </style>
 </head>
 <body>
@@ -22,7 +25,10 @@ canvas { margin-top: 20px; }
 <label>Сумма (положительное число — аванс, отрицательное — выплата):</label>
 <input type="number" id="change">
 
-<button onclick="addTransaction()">Добавить транзакцию</button>
+<div style="display:flex; gap:8px;">
+  <button id="saveBtn" onclick="addOrSaveTransaction()">Добавить транзакцию</button>
+  <button id="cancelBtn" onclick="cancelEdit()" style="display:none; width: 150px;">Отменить</button>
+</div>
 
 <div id="history"></div>
 <div id="result"></div>
@@ -37,10 +43,14 @@ let startDate = new Date("2025-10-23");
 // ----- Загрузка транзакций из LocalStorage -----
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 
+// индекс редактируемой транзакции, -1 = не редактируется
+let editingIndex = -1;
+
 // ----- Подсчёт баланса по дням -----
 function calculateBalance() {
     let today = new Date();
     let daysWorked = Math.floor((today - startDate)/(1000*60*60*24)) + 1;
+    if (daysWorked < 1) daysWorked = 1;
     let balanceByDay = [];
     let total = 0;
 
@@ -57,29 +67,85 @@ function calculateBalance() {
     return balanceByDay;
 }
 
-// ----- Добавление транзакции -----
-function addTransaction() {
+// ----- Добавление или сохранение транзакции (редактирование) -----
+function addOrSaveTransaction() {
     let dateInput = document.getElementById('transDate').value;
     let amount = parseFloat(document.getElementById('change').value);
-    if (!dateInput || isNaN(amount)) return;
+    if (!dateInput || isNaN(amount)) return alert("Заполните дату и сумму.");
 
-    transactions.push({date: dateInput, amount: amount});
+    if (editingIndex >= 0) {
+        // сохраняем изменения
+        transactions[editingIndex] = {date: dateInput, amount: amount};
+        editingIndex = -1;
+    } else {
+        // добавляем новую транзакцию
+        transactions.push({date: dateInput, amount: amount});
+    }
 
     // Сохраняем в LocalStorage
     localStorage.setItem('transactions', JSON.stringify(transactions));
 
+    // очистка формы и обновление UI
+    clearForm();
+    updateDisplay();
+}
+
+// ----- Начать редактирование записи -----
+function startEdit(i) {
+    const t = transactions[i];
+    document.getElementById('transDate').value = t.date;
+    document.getElementById('change').value = t.amount;
+    editingIndex = i;
+    document.getElementById('saveBtn').textContent = "Сохранить изменение";
+    document.getElementById('cancelBtn').style.display = "inline-block";
+}
+
+// ----- Отмена редактирования -----
+function cancelEdit() {
+    editingIndex = -1;
+    clearForm();
+    document.getElementById('saveBtn').textContent = "Добавить транзакцию";
+    document.getElementById('cancelBtn').style.display = "none";
+}
+
+// ----- Удаление транзакции -----
+function deleteTransaction(i) {
+    if (!confirm("Удалить эту транзакцию?")) return;
+    transactions.splice(i,1);
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+    // если удалили тот, что редактировался, отменяем режим редактирования
+    if (editingIndex === i) cancelEdit();
+    else if (editingIndex > i) editingIndex--; // сдвиг индекса
+    updateDisplay();
+}
+
+// ----- Очистка полей формы -----
+function clearForm() {
     document.getElementById('transDate').value = "";
     document.getElementById('change').value = "";
-    updateDisplay();
+    document.getElementById('saveBtn').textContent = "Добавить транзакцию";
+    document.getElementById('cancelBtn').style.display = "none";
 }
 
 // ----- Отображение истории и баланса -----
 function updateDisplay() {
     // История транзакций
     let historyHTML = "<h3>История транзакций:</h3>";
-    transactions.forEach((t,i)=>{
-        historyHTML += `<div>${t.date}: ${t.amount>0?'+':'-'}${Math.abs(t.amount)}</div>`;
-    });
+    if (transactions.length === 0) {
+        historyHTML += "<div>Транзакций нет</div>";
+    } else {
+        transactions.forEach((t,i)=>{
+            const sign = t.amount > 0 ? '+' : '-';
+            const abs = Math.abs(t.amount).toLocaleString('ru-RU');
+            historyHTML += `<div class="history-item">
+                <div class="history-left">${t.date}: ${sign}${abs}</div>
+                <div class="history-actions">
+                  <button class="small-btn" onclick="startEdit(${i})">Редактировать</button>
+                  <button class="small-btn" onclick="deleteTransaction(${i})">Удалить</button>
+                </div>
+            </div>`;
+        });
+    }
     document.getElementById('history').innerHTML = historyHTML;
 
     // Баланс
@@ -106,6 +172,10 @@ function drawChart(balanceByDay) {
                 fill:false,
                 tension:0.3
             }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
         }
     });
 }
