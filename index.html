@@ -83,7 +83,10 @@ auth.onAuthStateChanged(async (user) => {
   unsubscribeSnapshot = onSnapshot(q, (snap) => {
     transactions = snap.docs.map(d => ({ id: d.id, ...(d.data()) }));
     // Firestore хранит дату как строку или timestamp; привожу к ожидаемой форме
-    transactions = transactions.map(t => ({ id: t.id, date: (t.date?.toString?.() ?? t.date), amount: Number(t.amount) }));
+    transactions = transactions.map(t => {
+      const dateStr = t.date?.toString ? t.date.toString() : t.date;
+      return { id: t.id, date: dateStr, amount: Number(t.amount) };
+    });
     updateDisplay();
   }, (err) => {
     console.error('Ошибка подписки на транзакции:', err);
@@ -214,7 +217,7 @@ function updateDisplay() {
 function drawChart(balanceByDay) {
     const ctx = document.getElementById('salaryChart').getContext('2d');
     if(window.salaryChartInstance) window.salaryChartInstance.destroy();
-    window.salaryChartInstance = new Chart(ctx,{ 
+    window.salaryChartInstance = new Chart(ctx, { 
         type:'line',
         data:{
             labels: balanceByDay.map(b=>b.date.toISOString().split('T')[0]),

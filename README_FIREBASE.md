@@ -1,6 +1,4 @@
-````markdown name=README_FIREBASE.md
-```markdown
-Интеграция с Firebase — краткая инструкция
+# Интеграция с Firebase — краткая инструкция
 
 1) Создайте проект в Firebase Console: https://console.firebase.google.com/
 2) В разделе Project settings -> Your apps -> Add web app — получите конфигурацию и вставьте её в файл src/firebase.js, заменив поля <REPLACE_...>.
@@ -28,5 +26,3 @@
 Если хотите, я могу:
 - Вставить реальные значения firebaseConfig (если вы пришлёте их) и запушить изменения в ветку feature/firebase-integration;
 - Или создать PR сразу (мне нужен доступ записи в репо, у вас он есть — дай знать и я запушу).
-```
-````
