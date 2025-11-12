@@ -13,11 +13,14 @@ input, button { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box
 .history-actions { display: flex; gap: 6px; }
 .small-btn { padding: 4px 8px; width: auto; }
 canvas { margin-top: 20px; max-width: 100%; }
+#userStatus { font-size: 0.9rem; color: #555; margin-bottom: 8px; }
 </style>
 </head>
 <body>
 
 <h2>Учёт зарплаты</h2>
+
+<div id="userStatus">Подключение к Firebase...</div>
 
 <label>Дата транзакции:</label>
 <input type="date" id="transDate">
@@ -35,16 +38,58 @@ canvas { margin-top: 20px; max-width: 100%; }
 
 <canvas id="salaryChart" width="700" height="300"></canvas>
 
-<script>
-// ----- Настройки -----
+<script type="module">
+import { initFirebase, auth, db, signInAnonymouslyIfNeeded } from './src/firebase.js';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  orderBy
+} from 'https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore.js';
+
+await initFirebase(); // инициализация SDK (конфиг в src/firebase.js)
+
+// --- Переменные ---
 let rate = 15000;
 let startDate = new Date("2025-10-23");
 
-// ----- Загрузка транзакций из LocalStorage -----
-let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+let transactions = []; // массив {id, date, amount}
+let editingId = null;   // id документа в Firestore, который редактируется
 
-// индекс редактируемой транзакции, -1 = не редактируется
-let editingIndex = -1;
+const userStatusEl = document.getElementById('userStatus');
+const historyEl = document.getElementById('history');
+const resultEl = document.getElementById('result');
+
+// --- Подключаемся к аутентификации, затем подписываемся на транзакции пользователя ---
+let unsubscribeSnapshot = null;
+
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    userStatusEl.textContent = 'Вход анонимно...';
+    await signInAnonymouslyIfNeeded();
+    return;
+  }
+  userStatusEl.textContent = `Подключён: ${user.uid}`;
+  // Отписка от прежней подписки (если была)
+  if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+  // Коллекция: "transactions", поле userId для доступа
+  const q = query(collection(db, 'transactions'), where('userId', '==', user.uid), orderBy('date'));
+  unsubscribeSnapshot = onSnapshot(q, (snap) => {
+    transactions = snap.docs.map(d => ({ id: d.id, ...(d.data()) }));
+    // Firestore хранит дату как строку или timestamp; привожу к ожидаемой форме
+    transactions = transactions.map(t => ({ id: t.id, date: (t.date?.toString?.() ?? t.date), amount: Number(t.amount) }));
+    updateDisplay();
+  }, (err) => {
+    console.error('Ошибка подписки на транзакции:', err);
+    userStatusEl.textContent = 'Ошибка при получении данных.';
+  });
+});
 
 // ----- Подсчёт баланса по дням -----
 function calculateBalance() {
@@ -68,55 +113,63 @@ function calculateBalance() {
 }
 
 // ----- Добавление или сохранение транзакции (редактирование) -----
-function addOrSaveTransaction() {
+async function addOrSaveTransaction() {
     let dateInput = document.getElementById('transDate').value;
     let amount = parseFloat(document.getElementById('change').value);
     if (!dateInput || isNaN(amount)) return alert("Заполните дату и сумму.");
 
-    if (editingIndex >= 0) {
-        // сохраняем изменения
-        transactions[editingIndex] = {date: dateInput, amount: amount};
-        editingIndex = -1;
-    } else {
-        // добавляем новую транзакцию
-        transactions.push({date: dateInput, amount: amount});
+    const user = auth.currentUser;
+    if (!user) return alert('Пользователь не авторизован.');
+
+    try {
+      if (editingId) {
+        const ref = doc(db, 'transactions', editingId);
+        await updateDoc(ref, { date: dateInput, amount: amount });
+        editingId = null;
+      } else {
+        await addDoc(collection(db, 'transactions'), {
+          userId: user.uid,
+          date: dateInput,
+          amount: amount,
+          createdAt: new Date().toISOString()
+        });
+      }
+      clearForm();
+    } catch (e) {
+      console.error('Ошибка записи в Firestore:', e);
+      alert('Ошибка при сохранении транзакции.');
     }
-
-    // Сохраняем в LocalStorage
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-
-    // очистка формы и обновление UI
-    clearForm();
-    updateDisplay();
 }
 
 // ----- Начать редактирование записи -----
-function startEdit(i) {
-    const t = transactions[i];
+function startEdit(id) {
+    const t = transactions.find(x => x.id === id);
+    if (!t) return;
     document.getElementById('transDate').value = t.date;
     document.getElementById('change').value = t.amount;
-    editingIndex = i;
+    editingId = id;
     document.getElementById('saveBtn').textContent = "Сохранить изменение";
     document.getElementById('cancelBtn').style.display = "inline-block";
 }
 
 // ----- Отмена редактирования -----
 function cancelEdit() {
-    editingIndex = -1;
+    editingId = null;
     clearForm();
     document.getElementById('saveBtn').textContent = "Добавить транзакцию";
     document.getElementById('cancelBtn').style.display = "none";
 }
 
 // ----- Удаление транзакции -----
-function deleteTransaction(i) {
+async function deleteTransaction(id) {
     if (!confirm("Удалить эту транзакцию?")) return;
-    transactions.splice(i,1);
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-    // если удалили тот, что редактировался, отменяем режим редактирования
-    if (editingIndex === i) cancelEdit();
-    else if (editingIndex > i) editingIndex--; // сдвиг индекса
-    updateDisplay();
+    try {
+      await deleteDoc(doc(db, 'transactions', id));
+      if (editingId === id) cancelEdit();
+    } catch (e) {
+      console.error('Ошибка удаления:', e);
+      alert('Не удалось удалить транзакцию.');
+    }
 }
 
 // ----- Очистка полей формы -----
@@ -134,24 +187,24 @@ function updateDisplay() {
     if (transactions.length === 0) {
         historyHTML += "<div>Транзакций нет</div>";
     } else {
-        transactions.forEach((t,i)=>{
+        transactions.forEach((t)=>{
             const sign = t.amount > 0 ? '+' : '-';
             const abs = Math.abs(t.amount).toLocaleString('ru-RU');
             historyHTML += `<div class="history-item">
                 <div class="history-left">${t.date}: ${sign}${abs}</div>
                 <div class="history-actions">
-                  <button class="small-btn" onclick="startEdit(${i})">Редактировать</button>
-                  <button class="small-btn" onclick="deleteTransaction(${i})">Удалить</button>
+                  <button class="small-btn" onclick="startEdit('${t.id}')">Редактировать</button>
+                  <button class="small-btn" onclick="deleteTransaction('${t.id}')">Удалить</button>
                 </div>
             </div>`;
         });
     }
-    document.getElementById('history').innerHTML = historyHTML;
+    historyEl.innerHTML = historyHTML;
 
     // Баланс
     let balanceByDay = calculateBalance();
     let totalBalance = balanceByDay[balanceByDay.length-1]?.balance || 0;
-    document.getElementById('result').innerHTML = `<h3>Итог: ${totalBalance.toLocaleString('ru-RU')} тенге</h3>`;
+    resultEl.innerHTML = `<h3>Итог: ${totalBalance.toLocaleString('ru-RU')} тенге</h3>`;
 
     // График
     drawChart(balanceByDay);
@@ -161,7 +214,7 @@ function updateDisplay() {
 function drawChart(balanceByDay) {
     const ctx = document.getElementById('salaryChart').getContext('2d');
     if(window.salaryChartInstance) window.salaryChartInstance.destroy();
-    window.salaryChartInstance = new Chart(ctx,{
+    window.salaryChartInstance = new Chart(ctx,{ 
         type:'line',
         data:{
             labels: balanceByDay.map(b=>b.date.toISOString().split('T')[0]),
@@ -180,8 +233,14 @@ function drawChart(balanceByDay) {
     });
 }
 
-// ----- Инициализация -----
+// ----- Инициализация (обновление будет выполняться через onSnapshot) -----
 updateDisplay();
+
+// Экспортим функции в глобальную область, чтобы кнопки могли их вызывать
+window.addOrSaveTransaction = addOrSaveTransaction;
+window.cancelEdit = cancelEdit;
+window.startEdit = startEdit;
+window.deleteTransaction = deleteTransaction;
 </script>
 </body>
 </html>
