@@ -1,7 +1,7 @@
 // Инициализация Firebase (модуль, импортируется в index.html)
 // Замените поля в firebaseConfig на значения из вашей Firebase Console
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.24.0/firebase-app.js';
-import { getAuth, signInAnonymously, onAuthStateChanged, } from 'https://www.gstatic.com/firebasejs/9.24.0/firebase-auth.js';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.24.0/firebase-auth.js';
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore.js';
 
 let app;

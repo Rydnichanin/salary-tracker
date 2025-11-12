@@ -216,7 +216,7 @@ function updateDisplay() {
 // ----- Построение графика -----
 function drawChart(balanceByDay) {
     const ctx = document.getElementById('salaryChart').getContext('2d');
-    if(window.salaryChartInstance) window.salaryChartInstance.destroy();
+    if (window.salaryChartInstance) window.salaryChartInstance.destroy();
     window.salaryChartInstance = new Chart(ctx, { 
         type:'line',
         data:{
