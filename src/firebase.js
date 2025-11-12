@@ -27,11 +27,36 @@ export async function initFirebase() {
 export async function signInAnonymouslyIfNeeded() {
   if (!auth) throw new Error('Firebase не инициализирован');
   return new Promise((resolve, reject) => {
-    onAuthStateChanged(auth, (user) => {
-      if (user) return resolve(user);
-      signInAnonymously(auth)
-        .then(() => resolve(auth.currentUser))
-        .catch(reject);
-    }, reject);
+    let resolved = false;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (resolved) return;
+      if (user) {
+        resolved = true;
+        unsubscribe();
+        resolve(user);
+      } else {
+        signInAnonymously(auth)
+          .then(() => {
+            if (!resolved) {
+              resolved = true;
+              unsubscribe();
+              resolve(auth.currentUser);
+            }
+          })
+          .catch((err) => {
+            if (!resolved) {
+              resolved = true;
+              unsubscribe();
+              reject(err);
+            }
+          });
+      }
+    }, (err) => {
+      if (!resolved) {
+        resolved = true;
+        unsubscribe();
+        reject(err);
+      }
+    });
   });
 }
