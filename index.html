@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Автоподсчёт зарплаты</title>
+<title>Salary Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body { font-family: Arial; max-width: 800px; margin: auto; padding: 20px; }
@@ -13,9 +13,18 @@ input, button { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box
 .history-actions { display: flex; gap: 6px; }
 .small-btn { padding: 4px 8px; width: auto; }
 canvas { margin-top: 20px; max-width: 100%; }
+#auth-section { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; }
 </style>
 </head>
 <body>
+
+<h1>Salary Tracker</h1>
+
+<div id="auth-section">
+  <div id="auth-status">Not signed in</div>
+  <button id="signInBtn" onclick="signInWithGoogle()">Sign in with Google</button>
+  <button id="signOutBtn" onclick="signOut()" style="display:none;">Sign Out</button>
+</div>
 
 <h2>Учёт зарплаты</h2>
 
@@ -35,7 +44,109 @@ canvas { margin-top: 20px; max-width: 100%; }
 
 <canvas id="salaryChart" width="700" height="300"></canvas>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
 <script>
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBXVq8K9L4mN5pO6qR7sT8uV9wX0yZ1aB2",
+  authDomain: "gold-11fa4.firebaseapp.com",
+  projectId: "gold-11fa4",
+  storageBucket: "gold-11fa4.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Current user
+let currentUser = null;
+
+// Auth state observer
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('auth-status').textContent = `Signed in as ${user.displayName || user.email}`;
+    document.getElementById('signInBtn').style.display = 'none';
+    document.getElementById('signOutBtn').style.display = 'inline-block';
+    loadTransactionsFromFirestore();
+  } else {
+    document.getElementById('auth-status').textContent = 'Not signed in';
+    document.getElementById('signInBtn').style.display = 'inline-block';
+    document.getElementById('signOutBtn').style.display = 'none';
+    loadTransactionsFromLocalStorage();
+  }
+});
+
+// Sign in with Google
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(error => {
+    console.error('Sign in error:', error);
+    alert('Sign in failed: ' + error.message);
+  });
+}
+
+// Sign out
+function signOut() {
+  auth.signOut();
+}
+
+// Load transactions from Firestore
+function loadTransactionsFromFirestore() {
+  if (!currentUser) return;
+  db.collection('users').doc(currentUser.uid).collection('transactions')
+    .get()
+    .then(snapshot => {
+      transactions = [];
+      snapshot.forEach(doc => {
+        transactions.push({ id: doc.id, ...doc.data() });
+      });
+      updateDisplay();
+    })
+    .catch(error => {
+      console.error('Error loading from Firestore:', error);
+      loadTransactionsFromLocalStorage();
+    });
+}
+
+// Load transactions from LocalStorage
+function loadTransactionsFromLocalStorage() {
+  transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+  updateDisplay();
+}
+
+// Save transaction to Firestore
+function saveTransactionToFirestore(transaction) {
+  if (!currentUser) return Promise.resolve();
+  const userTransactions = db.collection('users').doc(currentUser.uid).collection('transactions');
+  if (transaction.id) {
+    return userTransactions.doc(transaction.id).set({
+      date: transaction.date,
+      amount: transaction.amount
+    });
+  } else {
+    return userTransactions.add({
+      date: transaction.date,
+      amount: transaction.amount
+    }).then(docRef => {
+      transaction.id = docRef.id;
+    });
+  }
+}
+
+// Delete transaction from Firestore
+function deleteTransactionFromFirestore(transactionId) {
+  if (!currentUser || !transactionId) return Promise.resolve();
+  return db.collection('users').doc(currentUser.uid).collection('transactions').doc(transactionId).delete();
+}
+
 // ----- Настройки -----
 let rate = 15000;
 let startDate = new Date("2025-10-23");
@@ -75,19 +186,28 @@ function addOrSaveTransaction() {
 
     if (editingIndex >= 0) {
         // сохраняем изменения
-        transactions[editingIndex] = {date: dateInput, amount: amount};
-        editingIndex = -1;
+        transactions[editingIndex] = {
+          ...transactions[editingIndex],
+          date: dateInput, 
+          amount: amount
+        };
+        const transaction = transactions[editingIndex];
+        saveTransactionToFirestore(transaction).then(() => {
+          editingIndex = -1;
+          localStorage.setItem('transactions', JSON.stringify(transactions));
+          clearForm();
+          updateDisplay();
+        });
     } else {
         // добавляем новую транзакцию
-        transactions.push({date: dateInput, amount: amount});
+        const newTransaction = {date: dateInput, amount: amount};
+        transactions.push(newTransaction);
+        saveTransactionToFirestore(newTransaction).then(() => {
+          localStorage.setItem('transactions', JSON.stringify(transactions));
+          clearForm();
+          updateDisplay();
+        });
     }
-
-    // Сохраняем в LocalStorage
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-
-    // очистка формы и обновление UI
-    clearForm();
-    updateDisplay();
 }
 
 // ----- Начать редактирование записи -----
@@ -111,12 +231,14 @@ function cancelEdit() {
 // ----- Удаление транзакции -----
 function deleteTransaction(i) {
     if (!confirm("Удалить эту транзакцию?")) return;
-    transactions.splice(i,1);
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-    // если удалили тот, что редактировался, отменяем режим редактирования
-    if (editingIndex === i) cancelEdit();
-    else if (editingIndex > i) editingIndex--; // сдвиг индекса
-    updateDisplay();
+    const transaction = transactions[i];
+    deleteTransactionFromFirestore(transaction.id).then(() => {
+      transactions.splice(i,1);
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      if (editingIndex === i) cancelEdit();
+      else if (editingIndex > i) editingIndex--;
+      updateDisplay();
+    });
 }
 
 // ----- Очистка полей формы -----
