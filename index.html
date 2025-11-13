@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Автоподсчёт зарплаты</title>
+<title>Salary Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body { font-family: Arial; max-width: 800px; margin: auto; padding: 20px; }
@@ -13,38 +13,156 @@ input, button { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box
 .history-actions { display: flex; gap: 6px; }
 .small-btn { padding: 4px 8px; width: auto; }
 canvas { margin-top: 20px; max-width: 100%; }
+#auth-container { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; }
+#user-info { display: none; }
 </style>
 </head>
 <body>
 
-<h2>Учёт зарплаты</h2>
+<h1>Salary Tracker</h1>
 
-<label>Дата транзакции:</label>
-<input type="date" id="transDate">
-
-<label>Сумма (положительное число — аванс, отрицательное — выплата):</label>
-<input type="number" id="change">
-
-<div style="display:flex; gap:8px;">
-  <button id="saveBtn" onclick="addOrSaveTransaction()">Добавить транзакцию</button>
-  <button id="cancelBtn" onclick="cancelEdit()" style="display:none; width: 150px;">Отменить</button>
+<div id="auth-container">
+  <div id="login-ui">
+    <button id="loginBtn" onclick="signInWithGoogle()">Sign In with Google</button>
+  </div>
+  <div id="user-info">
+    <p>Welcome, <span id="userName"></span>!</p>
+    <button id="logoutBtn" onclick="signOut()">Sign Out</button>
+  </div>
 </div>
 
-<div id="history"></div>
-<div id="result"></div>
+<div id="app-content" style="display:none;">
+  <h2>Учёт зарплаты</h2>
 
-<canvas id="salaryChart" width="700" height="300"></canvas>
+  <label>Дата транзакции:</label>
+  <input type="date" id="transDate">
 
-<script>
+  <label>Сумма (положительное число — аванс, отрицательное — выплата):</label>
+  <input type="number" id="change">
+
+  <div style="display:flex; gap:8px;">
+    <button id="saveBtn" onclick="addOrSaveTransaction()">Добавить транзакцию</button>
+    <button id="cancelBtn" onclick="cancelEdit()" style="display:none; width: 150px;">Отменить</button>
+  </div>
+
+  <div id="history"></div>
+  <div id="result"></div>
+
+  <canvas id="salaryChart" width="700" height="300"></canvas>
+</div>
+
+<script type="module">
+// Firebase Configuration
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqKc8tqL5YvP0NwX7HJmF9dP3LxYzCd8g",
+  authDomain: "gold-11fa4.firebaseapp.com",
+  projectId: "gold-11fa4",
+  storageBucket: "gold-11fa4.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+let currentUser = null;
+
 // ----- Настройки -----
 let rate = 15000;
 let startDate = new Date("2025-10-23");
 
-// ----- Загрузка транзакций из LocalStorage -----
-let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+// ----- Загрузка транзакций -----
+let transactions = [];
 
 // индекс редактируемой транзакции, -1 = не редактируется
 let editingIndex = -1;
+
+// Auth State Observer
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('login-ui').style.display = 'none';
+    document.getElementById('user-info').style.display = 'block';
+    document.getElementById('app-content').style.display = 'block';
+    document.getElementById('userName').textContent = user.displayName || user.email;
+    loadTransactions();
+  } else {
+    currentUser = null;
+    document.getElementById('login-ui').style.display = 'block';
+    document.getElementById('user-info').style.display = 'none';
+    document.getElementById('app-content').style.display = 'none';
+  }
+});
+
+// Sign In
+window.signInWithGoogle = async function() {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    console.error('Error signing in:', error);
+    alert('Failed to sign in: ' + error.message);
+  }
+}
+
+// Sign Out
+window.signOut = async function() {
+  try {
+    await firebaseSignOut(auth);
+  } catch (error) {
+    console.error('Error signing out:', error);
+  }
+}
+
+// Load transactions from Firestore
+async function loadTransactions() {
+  if (!currentUser) return;
+  try {
+    const transactionsRef = collection(db, `users/${currentUser.uid}/transactions`);
+    const snapshot = await getDocs(transactionsRef);
+    transactions = [];
+    snapshot.forEach((doc) => {
+      transactions.push({ id: doc.id, ...doc.data() });
+    });
+    updateDisplay();
+  } catch (error) {
+    console.error('Error loading transactions:', error);
+  }
+}
+
+// Save transaction to Firestore
+async function saveTransaction(transaction) {
+  if (!currentUser) return;
+  try {
+    const transactionId = transaction.id || Date.now().toString();
+    const transactionRef = doc(db, `users/${currentUser.uid}/transactions`, transactionId);
+    await setDoc(transactionRef, {
+      date: transaction.date,
+      amount: transaction.amount
+    });
+    return transactionId;
+  } catch (error) {
+    console.error('Error saving transaction:', error);
+    throw error;
+  }
+}
+
+// Delete transaction from Firestore
+async function deleteTransactionFromDB(transactionId) {
+  if (!currentUser) return;
+  try {
+    const transactionRef = doc(db, `users/${currentUser.uid}/transactions`, transactionId);
+    await deleteDoc(transactionRef);
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    throw error;
+  }
+}
 
 // ----- Подсчёт баланса по дням -----
 function calculateBalance() {
@@ -68,30 +186,37 @@ function calculateBalance() {
 }
 
 // ----- Добавление или сохранение транзакции (редактирование) -----
-function addOrSaveTransaction() {
+window.addOrSaveTransaction = async function() {
     let dateInput = document.getElementById('transDate').value;
     let amount = parseFloat(document.getElementById('change').value);
     if (!dateInput || isNaN(amount)) return alert("Заполните дату и сумму.");
 
-    if (editingIndex >= 0) {
-        // сохраняем изменения
-        transactions[editingIndex] = {date: dateInput, amount: amount};
-        editingIndex = -1;
-    } else {
-        // добавляем новую транзакцию
-        transactions.push({date: dateInput, amount: amount});
+    try {
+        if (editingIndex >= 0) {
+            // сохраняем изменения
+            const transaction = transactions[editingIndex];
+            transaction.date = dateInput;
+            transaction.amount = amount;
+            await saveTransaction(transaction);
+            editingIndex = -1;
+        } else {
+            // добавляем новую транзакцию
+            const newTransaction = {date: dateInput, amount: amount};
+            const id = await saveTransaction(newTransaction);
+            newTransaction.id = id;
+            transactions.push(newTransaction);
+        }
+
+        // очистка формы и обновление UI
+        clearForm();
+        updateDisplay();
+    } catch (error) {
+        alert('Failed to save transaction: ' + error.message);
     }
-
-    // Сохраняем в LocalStorage
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-
-    // очистка формы и обновление UI
-    clearForm();
-    updateDisplay();
 }
 
 // ----- Начать редактирование записи -----
-function startEdit(i) {
+window.startEdit = function(i) {
     const t = transactions[i];
     document.getElementById('transDate').value = t.date;
     document.getElementById('change').value = t.amount;
@@ -101,7 +226,7 @@ function startEdit(i) {
 }
 
 // ----- Отмена редактирования -----
-function cancelEdit() {
+window.cancelEdit = function() {
     editingIndex = -1;
     clearForm();
     document.getElementById('saveBtn').textContent = "Добавить транзакцию";
@@ -109,14 +234,22 @@ function cancelEdit() {
 }
 
 // ----- Удаление транзакции -----
-function deleteTransaction(i) {
+window.deleteTransaction = async function(i) {
     if (!confirm("Удалить эту транзакцию?")) return;
-    transactions.splice(i,1);
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-    // если удалили тот, что редактировался, отменяем режим редактирования
-    if (editingIndex === i) cancelEdit();
-    else if (editingIndex > i) editingIndex--; // сдвиг индекса
-    updateDisplay();
+    
+    try {
+        const transaction = transactions[i];
+        await deleteTransactionFromDB(transaction.id);
+        transactions.splice(i,1);
+        
+        // если удалили тот, что редактировался, отменяем режим редактирования
+        if (editingIndex === i) cancelEdit();
+        else if (editingIndex > i) editingIndex--; // сдвиг индекса
+        
+        updateDisplay();
+    } catch (error) {
+        alert('Failed to delete transaction: ' + error.message);
+    }
 }
 
 // ----- Очистка полей формы -----
@@ -179,9 +312,6 @@ function drawChart(balanceByDay) {
         }
     });
 }
-
-// ----- Инициализация -----
-updateDisplay();
 </script>
 </body>
 </html>
