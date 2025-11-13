@@ -2,186 +2,159 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Автоподсчёт зарплаты</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Подсчёт зарплаты (онлайн)</title>
 <style>
-body { font-family: Arial; max-width: 800px; margin: auto; padding: 20px; }
-input, button { padding: 5px; margin: 5px 0; width: 100%; box-sizing: border-box; }
-#history { margin-top: 20px; }
-.history-item { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; gap: 8px; }
-.history-left { flex: 1; }
-.history-actions { display: flex; gap: 6px; }
-.small-btn { padding: 4px 8px; width: auto; }
-canvas { margin-top: 20px; max-width: 100%; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+  }
+  h1 {
+    color: #333;
+  }
+  .card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    width: 330px;
+  }
+  input, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    font-size: 16px;
+  }
+  button {
+    background-color: #0078d7;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #005fa3;
+  }
+  .result {
+    margin-top: 20px;
+    font-size: 18px;
+  }
 </style>
 </head>
 <body>
 
-<h2>Учёт зарплаты</h2>
+<h1>Подсчёт зарплаты</h1>
 
-<label>Дата транзакции:</label>
-<input type="date" id="transDate">
+<div class="card">
+  <label>Дата (по умолчанию сегодня):</label>
+  <input type="date" id="dateInput">
 
-<label>Сумма (положительное число — аванс, отрицательное — выплата):</label>
-<input type="number" id="change">
+  <label>Добавить аванс или полученную з/п:</label>
+  <input type="number" id="amountInput" placeholder="Введите сумму">
+  <button id="addBtn">Добавить</button>
 
-<div style="display:flex; gap:8px;">
-  <button id="saveBtn" onclick="addOrSaveTransaction()">Добавить транзакцию</button>
-  <button id="cancelBtn" onclick="cancelEdit()" style="display:none; width: 150px;">Отменить</button>
+  <div class="result">
+    <p>Начислено: <span id="totalSalary">0</span> ₸</p>
+    <p>Выдано: <span id="paidOut">0</span> ₸</p>
+    <p><strong>Остаток: <span id="remaining">0</span> ₸</strong></p>
+  </div>
 </div>
 
-<div id="history"></div>
-<div id="result"></div>
+<script type="module">
+// === Подключение Firebase ===
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-<canvas id="salaryChart" width="700" height="300"></canvas>
+// === Конфигурация Firebase ===
+const firebaseConfig = {
+  apiKey: "AIzaSyDNk1We9du5BJyrgGbQrkqd7tSDscneIOA",
+  authDomain: "gold-11fa4.firebaseapp.com",
+  databaseURL: "https://gold-11fa4-default-rtdb.firebaseio.com",
+  projectId: "gold-11fa4",
+  storageBucket: "gold-11fa4.firebasestorage.app",
+  messagingSenderId: "226774330161",
+  appId: "1:226774330161:web:d1e1c93ade5dcea31d5e10",
+  measurementId: "G-7MLLBN1YZ4"
+};
 
-<script>
-// ----- Настройки -----
-let rate = 15000;
-let startDate = new Date("2025-10-23");
+// === Инициализация ===
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// ----- Загрузка транзакций из LocalStorage -----
-let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+// === Настройки ===
+const dailyRate = 15000;
+const holidayRate = 20000;
 
-// индекс редактируемой транзакции, -1 = не редактируется
-let editingIndex = -1;
+// Праздничные дни Казахстана (месяц-день)
+const holidays = [
+  "01-01", "01-02", "03-08", "03-21", "03-22", "03-23",
+  "05-01", "05-07", "05-09", "07-06", "08-30", "10-25", "12-16", "12-17"
+];
 
-// ----- Подсчёт баланса по дням -----
-function calculateBalance() {
-    let today = new Date();
-    let daysWorked = Math.floor((today - startDate)/(1000*60*60*24)) + 1;
-    if (daysWorked < 1) daysWorked = 1;
-    let balanceByDay = [];
-    let total = 0;
+// Устанавливаем сегодняшнюю дату
+const today = new Date();
+document.getElementById('dateInput').valueAsDate = today;
 
-    for (let i=0; i<daysWorked; i++) {
-        total += rate;
-        let currentDate = new Date(startDate);
-        currentDate.setDate(currentDate.getDate() + i);
-        transactions.forEach(t => {
-            let tDate = new Date(t.date);
-            if (tDate.toDateString() === currentDate.toDateString()) total -= t.amount;
-        });
-        balanceByDay.push({date: new Date(currentDate), balance: total});
-    }
-    return balanceByDay;
+// Ссылка на документ в Firestore
+const salaryDoc = doc(db, "salaryData", "main");
+
+// === Функции ===
+function isHoliday(date) {
+  const mmdd = date.toISOString().slice(5, 10);
+  return holidays.includes(mmdd);
 }
 
-// ----- Добавление или сохранение транзакции (редактирование) -----
-function addOrSaveTransaction() {
-    let dateInput = document.getElementById('transDate').value;
-    let amount = parseFloat(document.getElementById('change').value);
-    if (!dateInput || isNaN(amount)) return alert("Заполните дату и сумму.");
-
-    if (editingIndex >= 0) {
-        // сохраняем изменения
-        transactions[editingIndex] = {date: dateInput, amount: amount};
-        editingIndex = -1;
-    } else {
-        // добавляем новую транзакцию
-        transactions.push({date: dateInput, amount: amount});
-    }
-
-    // Сохраняем в LocalStorage
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-
-    // очистка формы и обновление UI
-    clearForm();
-    updateDisplay();
+function calculateSalary(startDate) {
+  const now = new Date();
+  let total = 0;
+  let d = new Date(startDate);
+  while (d <= now) {
+    total += isHoliday(d) ? holidayRate : dailyRate;
+    d.setDate(d.getDate() + 1);
+  }
+  return total;
 }
 
-// ----- Начать редактирование записи -----
-function startEdit(i) {
-    const t = transactions[i];
-    document.getElementById('transDate').value = t.date;
-    document.getElementById('change').value = t.amount;
-    editingIndex = i;
-    document.getElementById('saveBtn').textContent = "Сохранить изменение";
-    document.getElementById('cancelBtn').style.display = "inline-block";
+// === При изменении базы — сразу обновляем данные на странице ===
+onSnapshot(salaryDoc, (docSnap) => {
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    const totalSalary = calculateSalary(new Date(data.startDate));
+    const paidOut = data.paidOut || 0;
+    updateDisplay(totalSalary, paidOut);
+  } else {
+    // если нет данных, создаём с текущей даты
+    setDoc(salaryDoc, { startDate: today.toISOString().split("T")[0], paidOut: 0 });
+  }
+});
+
+// === Добавление транзакции ===
+document.getElementById('addBtn').addEventListener('click', async () => {
+  const amount = Number(document.getElementById('amountInput').value);
+  if (!amount) return alert("Введите сумму!");
+  
+  const snap = await getDoc(salaryDoc);
+  if (!snap.exists()) return alert("Данные ещё не созданы!");
+  
+  const data = snap.data();
+  const newPaid = (data.paidOut || 0) + amount;
+
+  await updateDoc(salaryDoc, { paidOut: newPaid });
+  document.getElementById('amountInput').value = "";
+});
+
+// === Обновление отображения ===
+function updateDisplay(totalSalary, paidOut) {
+  document.getElementById("totalSalary").textContent = totalSalary.toLocaleString();
+  document.getElementById("paidOut").textContent = paidOut.toLocaleString();
+  document.getElementById("remaining").textContent = (totalSalary - paidOut).toLocaleString();
 }
-
-// ----- Отмена редактирования -----
-function cancelEdit() {
-    editingIndex = -1;
-    clearForm();
-    document.getElementById('saveBtn').textContent = "Добавить транзакцию";
-    document.getElementById('cancelBtn').style.display = "none";
-}
-
-// ----- Удаление транзакции -----
-function deleteTransaction(i) {
-    if (!confirm("Удалить эту транзакцию?")) return;
-    transactions.splice(i,1);
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-    // если удалили тот, что редактировался, отменяем режим редактирования
-    if (editingIndex === i) cancelEdit();
-    else if (editingIndex > i) editingIndex--; // сдвиг индекса
-    updateDisplay();
-}
-
-// ----- Очистка полей формы -----
-function clearForm() {
-    document.getElementById('transDate').value = "";
-    document.getElementById('change').value = "";
-    document.getElementById('saveBtn').textContent = "Добавить транзакцию";
-    document.getElementById('cancelBtn').style.display = "none";
-}
-
-// ----- Отображение истории и баланса -----
-function updateDisplay() {
-    // История транзакций
-    let historyHTML = "<h3>История транзакций:</h3>";
-    if (transactions.length === 0) {
-        historyHTML += "<div>Транзакций нет</div>";
-    } else {
-        transactions.forEach((t,i)=>{
-            const sign = t.amount > 0 ? '+' : '-';
-            const abs = Math.abs(t.amount).toLocaleString('ru-RU');
-            historyHTML += `<div class="history-item">
-                <div class="history-left">${t.date}: ${sign}${abs}</div>
-                <div class="history-actions">
-                  <button class="small-btn" onclick="startEdit(${i})">Редактировать</button>
-                  <button class="small-btn" onclick="deleteTransaction(${i})">Удалить</button>
-                </div>
-            </div>`;
-        });
-    }
-    document.getElementById('history').innerHTML = historyHTML;
-
-    // Баланс
-    let balanceByDay = calculateBalance();
-    let totalBalance = balanceByDay[balanceByDay.length-1]?.balance || 0;
-    document.getElementById('result').innerHTML = `<h3>Итог: ${totalBalance.toLocaleString('ru-RU')} тенге</h3>`;
-
-    // График
-    drawChart(balanceByDay);
-}
-
-// ----- Построение графика -----
-function drawChart(balanceByDay) {
-    const ctx = document.getElementById('salaryChart').getContext('2d');
-    if(window.salaryChartInstance) window.salaryChartInstance.destroy();
-    window.salaryChartInstance = new Chart(ctx,{
-        type:'line',
-        data:{
-            labels: balanceByDay.map(b=>b.date.toISOString().split('T')[0]),
-            datasets:[{
-                label:'Баланс',
-                data: balanceByDay.map(b=>b.balance),
-                borderColor:'green',
-                fill:false,
-                tension:0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-}
-
-// ----- Инициализация -----
-updateDisplay();
 </script>
+
 </body>
 </html>
+
