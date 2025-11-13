@@ -1,160 +1,221 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Подсчёт зарплаты (онлайн)</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f4f6f8;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px;
-  }
-  h1 {
-    color: #333;
-  }
-  .card {
-    background: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    width: 330px;
-  }
-  input, button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 8px;
-    font-size: 16px;
-  }
-  button {
-    background-color: #0078d7;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  button:hover {
-    background-color: #005fa3;
-  }
-  .result {
-    margin-top: 20px;
-    font-size: 18px;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Подсчёт зарплаты</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      background: #f4f6f8;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #0078d7;
+      color: white;
+    }
+    input, select {
+      padding: 5px;
+      width: 95%;
+    }
+    button {
+      padding: 8px 12px;
+      background: #0078d7;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+    #auth-section {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+  </style>
 </head>
 <body>
+  <h2>📅 Учёт зарплаты</h2>
 
-<h1>Подсчёт зарплаты</h1>
-
-<div class="card">
-  <label>Дата (по умолчанию сегодня):</label>
-  <input type="date" id="dateInput">
-
-  <label>Добавить аванс или полученную з/п:</label>
-  <input type="number" id="amountInput" placeholder="Введите сумму">
-  <button id="addBtn">Добавить</button>
-
-  <div class="result">
-    <p>Начислено: <span id="totalSalary">0</span> ₸</p>
-    <p>Выдано: <span id="paidOut">0</span> ₸</p>
-    <p><strong>Остаток: <span id="remaining">0</span> ₸</strong></p>
+  <div id="auth-section">
+    <h3>Авторизация</h3>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Пароль" />
+    <button id="loginBtn">Войти</button>
+    <button id="logoutBtn" style="display:none;">Выйти</button>
+    <p id="authStatus"></p>
   </div>
-</div>
 
-<script type="module">
-// === Подключение Firebase ===
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  <table>
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Смена</th>
+        <th>Ставка</th>
+        <th>Заработок</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="date" id="dateInput"></td>
+        <td>
+          <select id="shiftInput">
+            <option value="День">День</option>
+            <option value="Ночь">Ночь</option>
+          </select>
+        </td>
+        <td><input type="number" id="rateInput" placeholder="Ставка"></td>
+        <td id="totalCell">0</td>
+      </tr>
+    </tbody>
+  </table>
 
-// === Конфигурация Firebase ===
-const firebaseConfig = {
-  apiKey: "AIzaSyDNk1We9du5BJyrgGbQrkqd7tSDscneIOA",
-  authDomain: "gold-11fa4.firebaseapp.com",
-  databaseURL: "https://gold-11fa4-default-rtdb.firebaseio.com",
-  projectId: "gold-11fa4",
-  storageBucket: "gold-11fa4.firebasestorage.app",
-  messagingSenderId: "226774330161",
-  appId: "1:226774330161:web:d1e1c93ade5dcea31d5e10",
-  measurementId: "G-7MLLBN1YZ4"
-};
+  <div style="text-align:center; margin-top:20px;">
+    <button id="saveBtn">💾 Сохранить</button>
+  </div>
 
-// === Инициализация ===
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  <script type="module">
+    // === Импорт Firebase SDK ===
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import {
+      getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-// === Настройки ===
-const dailyRate = 15000;
-const holidayRate = 20000;
+    // === 🔥 ВСТАВЬ СВОИ ДАННЫЕ FIREBASE ===
+    const firebaseConfig = {
+      apiKey: "ТВОЙ_API_KEY",
+      authDomain: "ТВОЙ_PROJECT_ID.firebaseapp.com",
+      projectId: "ТВОЙ_PROJECT_ID",
+      storageBucket: "ТВОЙ_PROJECT_ID.appspot.com",
+      messagingSenderId: "ТВОЙ_SENDER_ID",
+      appId: "ТВОЙ_APP_ID"
+    };
 
-// Праздничные дни Казахстана (месяц-день)
-const holidays = [
-  "01-01", "01-02", "03-08", "03-21", "03-22", "03-23",
-  "05-01", "05-07", "05-09", "07-06", "08-30", "10-25", "12-16", "12-17"
-];
+    // === ИНИЦИАЛИЗАЦИЯ FIREBASE ===
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-// Устанавливаем сегодняшнюю дату
-const today = new Date();
-document.getElementById('dateInput').valueAsDate = today;
+    const dateInput = document.getElementById("dateInput");
+    const rateInput = document.getElementById("rateInput");
+    const shiftInput = document.getElementById("shiftInput");
+    const totalCell = document.getElementById("totalCell");
+    const saveBtn = document.getElementById("saveBtn");
 
-// Ссылка на документ в Firestore
-const salaryDoc = doc(db, "salaryData", "main");
+    // === Автоматическая установка даты ===
+    const today = new Date().toISOString().split("T")[0];
+    dateInput.value = today;
 
-// === Функции ===
-function isHoliday(date) {
-  const mmdd = date.toISOString().slice(5, 10);
-  return holidays.includes(mmdd);
-}
+    // === Казахстанские праздники ===
+    const holidays = [
+      "2025-01-01", "2025-03-08", "2025-03-21", "2025-03-22", "2025-03-23",
+      "2025-05-01", "2025-05-07", "2025-05-09", "2025-07-06", "2025-08-30",
+      "2025-12-16", "2025-12-17"
+    ];
 
-function calculateSalary(startDate) {
-  const now = new Date();
-  let total = 0;
-  let d = new Date(startDate);
-  while (d <= now) {
-    total += isHoliday(d) ? holidayRate : dailyRate;
-    d.setDate(d.getDate() + 1);
-  }
-  return total;
-}
+    // === Проверка праздника ===
+    function updateRate() {
+      if (holidays.includes(dateInput.value)) {
+        rateInput.value = 20000;
+        rateInput.disabled = true;
+      } else {
+        rateInput.disabled = false;
+      }
+    }
+    dateInput.addEventListener("change", updateRate);
+    updateRate();
 
-// === При изменении базы — сразу обновляем данные на странице ===
-onSnapshot(salaryDoc, (docSnap) => {
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    const totalSalary = calculateSalary(new Date(data.startDate));
-    const paidOut = data.paidOut || 0;
-    updateDisplay(totalSalary, paidOut);
-  } else {
-    // если нет данных, создаём с текущей даты
-    setDoc(salaryDoc, { startDate: today.toISOString().split("T")[0], paidOut: 0 });
-  }
-});
+    // === Реакция на изменение ставки ===
+    rateInput.addEventListener("input", () => {
+      totalCell.textContent = rateInput.value || 0;
+    });
 
-// === Добавление транзакции ===
-document.getElementById('addBtn').addEventListener('click', async () => {
-  const amount = Number(document.getElementById('amountInput').value);
-  if (!amount) return alert("Введите сумму!");
-  
-  const snap = await getDoc(salaryDoc);
-  if (!snap.exists()) return alert("Данные ещё не созданы!");
-  
-  const data = snap.data();
-  const newPaid = (data.paidOut || 0) + amount;
+    // === Сохранение в Firestore ===
+    saveBtn.onclick = async () => {
+      const docRef = doc(db, "salaryData", "currentDay");
+      await setDoc(docRef, {
+        date: dateInput.value,
+        shift: shiftInput.value,
+        rate: Number(rateInput.value) || 0
+      });
+      alert("✅ Данные сохранены в Firebase!");
+    };
 
-  await updateDoc(salaryDoc, { paidOut: newPaid });
-  document.getElementById('amountInput').value = "";
-});
+    // === Онлайн-обновление из Firestore ===
+    const docRef = doc(db, "salaryData", "currentDay");
+    onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        dateInput.value = data.date;
+        shiftInput.value = data.shift;
+        rateInput.value = data.rate;
+        totalCell.textContent = data.rate;
+        updateRate();
+      }
+    });
 
-// === Обновление отображения ===
-function updateDisplay(totalSalary, paidOut) {
-  document.getElementById("totalSalary").textContent = totalSalary.toLocaleString();
-  document.getElementById("paidOut").textContent = paidOut.toLocaleString();
-  document.getElementById("remaining").textContent = (totalSalary - paidOut).toLocaleString();
-}
-</script>
+    // === Авторизация ===
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const authStatus = document.getElementById("authStatus");
 
+    loginBtn.onclick = async () => {
+      try {
+        await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+      } catch (error) {
+        alert("Ошибка входа: " + error.message);
+      }
+    };
+
+    logoutBtn.onclick = async () => {
+      await signOut(auth);
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        authStatus.textContent = "Вы вошли как " + user.email;
+        loginBtn.style.display = "none";
+        logoutBtn.style.display = "inline-block";
+        emailInput.style.display = passwordInput.style.display = "none";
+        enableEditing(true);
+      } else {
+        authStatus.textContent = "Не авторизованы";
+        loginBtn.style.display = "inline-block";
+        logoutBtn.style.display = "none";
+        emailInput.style.display = passwordInput.style.display = "inline-block";
+        enableEditing(false);
+      }
+    });
+
+    // === Блокировка редактирования ===
+    function enableEditing(enabled) {
+      const inputs = document.querySelectorAll("input, select, button");
+      inputs.forEach(el => {
+        if (el.id !== "loginBtn" && el.id !== "logoutBtn" && el.id !== "email" && el.id !== "password") {
+          el.disabled = !enabled;
+        }
+      });
+    }
+  </script>
 </body>
 </html>
-
