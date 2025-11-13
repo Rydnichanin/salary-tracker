@@ -7,20 +7,26 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{ --accent:#00796b; --accent-dark:#004d40; --card-bg: rgba(255,255,255,0.78); --card-shadow: 0 12px 30px rgba(6,22,37,0.12); }
-html,body{ height:100%; margin:0; font-family:'Inter',sans-serif; background:linear-gradient(120deg,#f0fbff 0%,#f6fff7 40%,#fffaf0 100%); color:#04363a; }
-#main{ max-width:640px; margin:80px auto; text-align:center; padding:34px; background:var(--card-bg); border-radius:20px; box-shadow:var(--card-shadow); }
+html,body{ height:100%; }
+body{ font-family:'Inter',sans-serif; margin:0; padding:0; min-height:100vh; position:relative; overflow-x:hidden; background:linear-gradient(120deg,#f0fbff 0%,#f6fff7 40%,#fffaf0 100%); color:#04363a; }
+body::before, body::after{ content:""; position:fixed; pointer-events:none; z-index:0; filter: blur(90px); opacity:0.55; }
+body::before{ width:640px; height:640px; left:-8%; top:-10%; background: radial-gradient(circle at 30% 30%, rgba(0,121,107,0.14), rgba(0,121,107,0.06) 30%, transparent 60%); transform: rotate(-10deg); }
+body::after{ width:520px; height:520px; right:-6%; bottom:-6%; background: radial-gradient(circle at 70% 70%, rgba(1,87,155,0.10), rgba(1,87,155,0.04) 30%, transparent 60%); transform: rotate(20deg); }
+#main{ max-width:640px; margin:80px auto; text-align:center; padding:34px; background:var(--card-bg); border-radius:20px; box-shadow:var(--card-shadow); z-index:1; }
 #sidebar{ position:fixed; top:20px; right:20px; width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70)); padding:16px 22px; border-radius:14px; box-shadow:0 12px 30px rgba(6,22,37,0.08); z-index:2; }
 #sidebar h4{ margin:0; color:var(--accent); cursor:pointer; user-select:none; }
-#authForm{ margin-top:10px; max-height:0; opacity:0; overflow:hidden; transition:max-height 0.28s, opacity 0.28s; }
+#authForm{ margin-top:10px; max-height:0; opacity:0; transition:max-height 0.28s ease, opacity 0.28s ease; overflow:hidden; }
 #authForm.show{ max-height:220px; opacity:1; }
-input,button{ padding:9px; margin:8px 0; width:100%; border-radius:10px; border:1px solid #dbe9e6; font-size:0.96em; }
+input,button{ padding:9px; margin:8px 0; width:100%; box-sizing:border-box; border-radius:10px; border:1px solid #dbe9e6; font-size:0.96em; }
 button{ background:var(--accent); color:#fff; border:none; cursor:pointer; transition:0.18s; }
 button:hover{ background:var(--accent-dark); }
 button:disabled{ background:#bbb; cursor:not-allowed; }
-#balanceDisplay{ font-size:2.6em; margin-bottom:14px; font-weight:600; }
+#authStatus{ font-size:0.86em; color:#375651; margin-top:6px; }
+#balanceDisplay{ font-size:2.6em; margin-bottom:14px; font-weight:600; letter-spacing:0.4px; }
 #manualAmount,#addBtn{ margin-top:14px; font-size:1em; }
+#addBtn{ display:flex; align-items:center; justify-content:center; gap:8px; }
 #historyContainer{ margin-top:34px; text-align:left; max-height:340px; overflow-y:auto; }
-.history-item{ padding:10px; margin:6px 0; background:rgba(255,255,255,0.85); border-radius:10px; display:flex; justify-content:space-between; align-items:center; }
+.history-item{ padding:10px; margin:6px 0; background:rgba(255,255,255,0.85); border-radius:10px; box-shadow:0 4px 10px rgba(6,22,37,0.06); display:flex; justify-content:space-between; align-items:center; }
 @media (max-width:700px){ #main{ margin:60px 18px; padding:22px; } #sidebar{ width:calc(100% - 40px); right:20px; left:20px; top:auto; bottom:20px; } }
 </style>
 </head>
@@ -49,39 +55,41 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
 </div>
 
 <script type="module">
-// Toast уведомления
+// Уведомления
 function showToast(text, timeout = 3500){
   let t = document.getElementById('__app_toast__');
-  if(!t){ t = document.createElement('div'); t.id='__app_toast__';
+  if(!t){
+    t = document.createElement('div'); t.id='__app_toast__';
     Object.assign(t.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',background:'rgba(6,22,37,0.9)',color:'#fff',padding:'10px 16px',borderRadius:'10px',zIndex:99999,fontFamily:'Inter, sans-serif',fontSize:'14px'});
     document.body.appendChild(t);
   }
-  t.textContent = text; t.style.opacity='1';
+  t.textContent = text;
+  t.style.opacity = '1';
   clearTimeout(t.__hideTimer);
   t.__hideTimer = setTimeout(()=> t.style.opacity='0', timeout);
 }
 
 // Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, orderBy, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, orderBy, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-// **Твои реальные ключи Firebase**
+// Настройка Firebase
 const firebaseConfig = {
   apiKey: "ТВОЙ_API_KEY",
-  authDomain: "ТВОЙ_AUTH_DOMAIN",
-  databaseURL: "ТВОЙ_DB_URL",
-  projectId: "ТВОЙ_PROJECT_ID",
-  storageBucket: "ТВОЙ_STORAGE_BUCKET",
-  messagingSenderId: "ТВОЙ_MESSAGING_ID",
-  appId: "ТВОЙ_APP_ID",
-  measurementId: "ТВОЙ_MEASUREMENT_ID"
+  authDomain: "gold-11fa4.firebaseapp.com",
+  projectId: "gold-11fa4",
+  storageBucket: "gold-11fa4.appspot.com",
+  messagingSenderId: "226774330161",
+  appId: "1:226774330161:web:d1e1c93ade5dcea31d5e10",
+  measurementId: "G-7MLLBN1YZ4"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// Elements
 const balanceDisplay = document.getElementById("balanceDisplay");
 const manualAmount = document.getElementById("manualAmount");
 const addBtn = document.getElementById("addBtn");
@@ -94,117 +102,148 @@ const authStatus = document.getElementById("authStatus");
 const toggleAuth = document.getElementById("toggleAuth");
 const authForm = document.getElementById("authForm");
 
-const DAILY_RATE = 15000;
+let rate = 15000;
 let lastBalance = 176000;
+
 const balanceDocRef = doc(db,"salaryData","balance");
-const entriesColRef = collection(balanceDocRef,"entries");
+const entriesColRef = collection(balanceDocRef, "entries");
 
 // UI
 toggleAuth.onclick = ()=> authForm.classList.toggle("show");
-loginBtnEl.onclick = async ()=> { try{ await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value); showToast('Вход выполнен'); } catch(e){ showToast(e.message); } };
-logoutBtnEl.onclick = async ()=> { try{ await signOut(auth); showToast('Вы вышли'); } catch(e){ showToast(e.message); } };
+loginBtnEl.onclick = async ()=> {
+  try { await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value); showToast('Вход выполнен'); }
+  catch(e){ console.error(e); showToast('Ошибка входа: ' + (e.message || e)); }
+};
+logoutBtnEl.onclick = async ()=> {
+  try { await signOut(auth); showToast('Вы вышли'); }
+  catch(e){ console.error(e); showToast('Ошибка выхода'); }
+};
 function enableEditing(enabled){ manualAmount.disabled = !enabled; addBtn.disabled = !enabled; }
+
+// Анимация баланса
+function animateBalanceChange(newBalance, prevBalance, changeAmount = 0){
+  const from = Number(prevBalance)||0; const to = Number(newBalance)||0;
+  balanceDisplay.style.color = (to - from >= 0) ? "#2e7d32" : "#c62828";
+  balanceDisplay.textContent = Math.round(to).toLocaleString('ru-RU');
+  if(changeAmount !== 0){
+    const anim = document.createElement("div"); anim.textContent = (changeAmount>0?"+":"-")+Math.abs(changeAmount).toLocaleString('ru-RU');
+    Object.assign(anim.style,{position:'fixed',left:'50%',top:'20px',transform:'translateX(-50%)',background:'rgba(0,0,0,0.7)',color:'#fff',padding:'6px 10px',borderRadius:'8px',zIndex:99999});
+    document.body.appendChild(anim); setTimeout(()=>anim.remove(),1200);
+  }
+}
 
 // История
 async function updateHistory(){
   try{
     const q = query(entriesColRef, orderBy("date","desc"));
     const snap = await getDocs(q);
-    if(snap.empty){ historyList.innerHTML="Нет записей"; return; }
-    historyList.innerHTML="";
+    if(snap.empty){ historyList.innerHTML = "Нет записей"; return; }
+    historyList.innerHTML = "";
     snap.forEach(d=>{
       const data = d.data();
-      const dateStr = data.date?.toDate ? data.date.toDate().toLocaleString() : "-";
-      const sign = (data.amount>=0)?"+":"-";
-      const div = document.createElement("div");
-      div.className="history-item";
-      div.innerHTML = `<div>${dateStr}</div><div style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${Math.abs(data.amount).toLocaleString('ru-RU')}</div>`;
+      let dateStr = "—";
+      if(data.date && typeof data.date.toDate === "function") dateStr = data.date.toDate().toLocaleString();
+      else if(data.date) dateStr = new Date(data.date).toLocaleString();
+      const amount = (typeof data.amount === "number")? data.amount.toLocaleString('ru-RU'): String(data.amount);
+      const sign = (data.amount >= 0) ? "+" : "-";
+      const div = document.createElement("div"); div.className = "history-item";
+      div.innerHTML = `<div class="history-date">${dateStr}</div><div class="history-amount" style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
       historyList.appendChild(div);
     });
-  } catch(e){ console.warn(e); }
+  }catch(e){ console.warn(e); historyList.innerHTML="Нет записей"; }
 }
 
-// Баланс на экране
-function animateBalanceChange(newBalance){ balanceDisplay.textContent = Math.round(newBalance).toLocaleString('ru-RU'); }
-
-// Начисление за пропущенные дни
-async function addDailyRate(){
-  try{
-    const snap = await getDoc(balanceDocRef);
-    let balance = lastBalance || 176000;
-    let lastAdded = snap.exists && snap.data().lastAddedDate ? snap.data().lastAddedDate.toDate() : new Date();
-    lastAdded.setHours(0,0,0,0);
-    const today = new Date(); today.setHours(0,0,0,0);
-    let daysDiff = Math.floor((today - lastAdded)/(1000*60*60*24));
-    if(daysDiff>0){
-      const added = daysDiff*DAILY_RATE;
-      balance += added;
-      await setDoc(balanceDocRef,{ balance, lastAddedDate: today },{ merge:true });
-      await addDoc(entriesColRef,{ date: serverTimestamp(), amount: added });
-    }
-    lastBalance = balance;
-    animateBalanceChange(balance);
-    updateHistory();
-  } catch(e){ console.warn(e); }
+// Изменение баланса вручную
+async function commitBalanceChange(amount){
+  const balSnap = await getDoc(balanceDocRef);
+  let current = balSnap.exists() && typeof balSnap.data().balance==="number" ? balSnap.data().balance : lastBalance;
+  const newBalance = current + Number(amount);
+  const batch = writeBatch(db);
+  batch.set(balanceDocRef, { balance: newBalance }, { merge:true });
+  const newEntryRef = doc(entriesColRef);
+  batch.set(newEntryRef, { date: serverTimestamp(), amount: Number(amount) });
+  await batch.commit();
+  return newBalance;
 }
 
-// Ручное изменение
 addBtn.onclick = async ()=>{
-  let val = parseFloat(manualAmount.value);
-  if(isNaN(val)){ showToast("Введите число!"); return; }
-
-  if(!auth.currentUser){
-    showToast("Нужно войти, чтобы сохранить изменения");
-    authForm.classList.add('show');
-    return;
-  }
-
+  let value = parseFloat(manualAmount.value);
+  if(isNaN(value)){ showToast('Введите число!'); return; }
   addBtn.disabled = true;
   try{
-    const newBalance = lastBalance + val;
-    await setDoc(balanceDocRef,{ balance:newBalance, lastAddedDate:new Date() },{ merge:true });
-    await addDoc(entriesColRef,{ date: serverTimestamp(), amount: val });
+    const newBalance = await commitBalanceChange(value);
+    animateBalanceChange(newBalance,lastBalance,value);
     lastBalance = newBalance;
-    animateBalanceChange(newBalance);
-    manualAmount.value="";
-    updateHistory();
-    showToast("Изменение сохранено");
-  } catch(e){ 
-    console.error(e); 
-    showToast("Ошибка при сохранении");
-  } finally { 
-    addBtn.disabled = false; 
-  }
+    manualAmount.value = "";
+    await updateHistory();
+    showToast('Изменение сохранено');
+  }catch(e){ console.error(e); showToast('Ошибка'); } finally { addBtn.disabled=false; }
 };
+
+// Ежедневное начисление
+async function addDailyRate(days=1){
+  const amount = rate * days;
+  const newBalance = await commitBalanceChange(amount);
+  animateBalanceChange(newBalance,lastBalance,amount);
+  lastBalance = newBalance;
+  updateHistory();
+}
+
+// Проверка даты и начисление при пропусках
+(function setupDailyChecker(){
+  const KEY='last_daily_date';
+  const todayStr = new Date().toISOString().split("T")[0];
+  let lastDate = localStorage.getItem(KEY) || todayStr;
+  let diff = Math.floor((new Date(todayStr)-new Date(lastDate))/(1000*60*60*24));
+  if(diff>0){ addDailyRate(diff); localStorage.setItem(KEY,todayStr); }
+
+  setInterval(()=>{
+    const nowStr = new Date().toISOString().split("T")[0];
+    const stored = localStorage.getItem(KEY) || nowStr;
+    if(stored!==nowStr){
+      addDailyRate(1);
+      localStorage.setItem(KEY,nowStr);
+    }
+  },60*1000);
+})();
+
+// Скрытие формы при клике вне
+document.addEventListener('click',(e)=>{
+  if(!document.getElementById('sidebar').contains(e.target)){
+    authForm.classList.remove('show');
+  }
+});
+
+// Инициализация
+async function initBalance(){
+  try{
+    const snap = await getDoc(balanceDocRef);
+    if(snap.exists() && typeof snap.data().balance==="number"){
+      lastBalance = snap.data().balance;
+    }
+    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
+    updateHistory();
+  }catch(e){ console.warn(e); balanceDisplay.textContent=lastBalance.toLocaleString('ru-RU'); }
+}
 
 // Авторизация
 onAuthStateChanged(auth,user=>{
   if(user){
     authStatus.textContent="Вы вошли как "+user.email;
-    loginBtnEl.style.display="none";
-    logoutBtnEl.style.display="inline-block";
+    loginBtnEl.style.display="none"; logoutBtnEl.style.display="inline-block";
     emailInput.style.display=passwordInput.style.display="none";
-    authForm.classList.remove("show");
     toggleAuth.textContent="Пользователь авторизован";
     enableEditing(true);
-  } else {
+  }else{
     authStatus.textContent="Не авторизованы";
-    loginBtnEl.style.display="inline-block";
-    logoutBtnEl.style.display="none";
+    loginBtnEl.style.display="inline-block"; logoutBtnEl.style.display="none";
     emailInput.style.display=passwordInput.style.display="inline-block";
     toggleAuth.textContent="Авторизация";
     enableEditing(false);
   }
 });
 
-// Сворачивание формы при клике вне
-document.addEventListener('click',(e)=>{
-  const sidebar = document.getElementById('sidebar');
-  if(!sidebar.contains(e.target)) authForm.classList.remove('show');
-});
-
-// Инициализация
-addDailyRate();
+initBalance();
 </script>
 </body>
 </html>
