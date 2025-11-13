@@ -5,24 +5,24 @@
 <title>Зарплата</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-body { font-family: 'Inter', sans-serif; margin:0; padding:0; background:#f5f7fa; min-height:100vh; }
+body { font-family: 'Inter', sans-serif; margin:0; padding:0; background:#f0f4f8; min-height:100vh; }
 #sidebar { position:fixed; top:20px; right:20px; width:220px; background:#ffffff; padding:15px 20px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.15); transition:all 0.4s; overflow:hidden; }
-#sidebar h4 { margin:0; color:#00796b; cursor:pointer; user-select:none; font-weight:600; }
+#sidebar h4 { margin:0; color:#00796b; cursor:pointer; user-select:none; }
 #authForm { margin-top:10px; max-height:0; opacity:0; transition:max-height 0.4s ease, opacity 0.4s ease; overflow:hidden; }
-#authForm.show { max-height:220px; opacity:1; }
-input, button { padding:6px 8px; margin:5px 0; width:100%; box-sizing:border-box; border-radius:8px; border:1px solid #ccc; font-size:0.9em; }
+#authForm.show { max-height:200px; opacity:1; }
+input, button { padding:8px; margin:6px 0; width:100%; box-sizing:border-box; border-radius:8px; border:1px solid #ccc; font-size:0.95em; }
 button { background:#00796b; color:#fff; border:none; cursor:pointer; transition:0.2s; }
 button:hover { background:#004d40; }
 button:disabled { background:#bbb; cursor:not-allowed; }
-#authStatus { font-size:0.8em; color:#555; margin-top:5px; text-align:center; }
-#main { max-width:600px; margin:80px auto; text-align:center; padding:30px; background:#ffffff; border-radius:20px; box-shadow:0 8px 25px rgba(0,0,0,0.15); color:#004d40; position:relative; }
-#balanceDisplay { font-size:2.5em; margin-bottom:15px; transition: all 0.3s ease; }
-#manualAmount, #addBtn { margin-top:10px; font-size:0.95em; }
-#addBtn { display:flex; align-items:center; justify-content:center; gap:5px; padding:8px; }
+#authStatus { font-size:0.85em; color:#555; margin-top:5px;}
+#main { max-width:600px; margin:80px auto; text-align:center; padding:30px; background:#e3f2fd; border-radius:20px; box-shadow:0 8px 25px rgba(0,0,0,0.15); color:#004d40; position:relative; }
+#balanceDisplay { font-size:2.5em; margin-bottom:15px; }
+#manualAmount, #addBtn { margin-top:15px; font-size:1em; }
+#addBtn { display:flex; align-items:center; justify-content:center; gap:5px; }
+#addBtn span { font-weight:bold; font-size:1.1em; }
 #historyContainer { margin-top:30px; text-align:left; max-height:300px; overflow-y:auto; }
-.history-item { padding:8px; margin:4px 0; background:#f9f9f9; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.05); display:flex; justify-content:space-between; opacity:0; transform:translateY(20px); transition: all 0.3s ease; }
-.history-item.show { opacity:1; transform:translateY(0); }
-.history-date { font-size:0.8em; color:#555; }
+.history-item { padding:8px; margin:4px 0; background:#ffffff; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); display:flex; justify-content:space-between; }
+.history-date { font-size:0.85em; color:#555; }
 .history-amount { font-weight:600; }
 #balanceChangeAnim { position:absolute; font-weight:bold; font-size:1.2em; pointer-events:none; transition: all 1s ease-out; opacity:1; }
 </style>
@@ -77,7 +77,7 @@ const addBtn = document.getElementById("addBtn");
 const historyList = document.getElementById("historyList");
 
 let rate = 15000;
-let lastBalance = 161000; 
+let lastBalance = 0; 
 let holidays = ["2025-01-01","2025-03-08","2025-03-21","2025-03-22","2025-03-23","2025-05-01","2025-05-07","2025-05-09","2025-07-06","2025-08-30","2025-12-16","2025-12-17"];
 
 const emailInput = document.getElementById("email");
@@ -88,6 +88,7 @@ const authStatus = document.getElementById("authStatus");
 const toggleAuth = document.getElementById("toggleAuth");
 const authForm = document.getElementById("authForm");
 
+// Сворачивание/разворачивание формы
 toggleAuth.onclick = ()=>{ authForm.classList.toggle("show"); }
 
 loginBtnEl.onclick = async () => { try { await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value);} catch(e){ alert("Ошибка: "+e.message);} };
@@ -116,8 +117,10 @@ function enableEditing(enabled){
 }
 
 const balanceDocRef = doc(db,"salaryData","balance");
-const entriesColRef = collection(db,"salaryData","entries");
+// corrected: entries should be a subcollection of the balance document
+const entriesColRef = collection(balanceDocRef, "entries");
 
+// --- Анимация изменения баланса ---
 function animateBalanceChange(newBalance, prevBalance, changeAmount=0){
   let steps = 20;
   let step = 0;
@@ -145,57 +148,101 @@ function animateBalanceChange(newBalance, prevBalance, changeAmount=0){
   }
 }
 
+// --- Обновление истории ---
 async function updateHistory(){
-  const q = query(entriesColRef, orderBy("date","desc"));
-  const snapshot = await getDocs(q);
-  if(snapshot.empty){ historyList.innerHTML="Нет записей"; return; }
-  historyList.innerHTML = "";
-  snapshot.forEach(doc=>{
-    const data = doc.data();
-    const date = new Date(data.date).toLocaleString();
-    const amount = data.amount.toLocaleString('ru-RU');
-    const sign = data.amount>=0?"+":"-";
-    const div = document.createElement("div");
-    div.className="history-item show";
-    div.innerHTML = `<div class="history-date">${date}</div>
-                     <div class="history-amount" style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
-    historyList.appendChild(div);
-  });
-}
-
-async function initBalance(){
-  const docSnap = await getDoc(balanceDocRef);
-  if(docSnap.exists()){
-    lastBalance = docSnap.data().balance;
-  } else {
-    lastBalance = 161000;
-    await setDoc(balanceDocRef,{balance:lastBalance});
+  try{
+    const q = query(entriesColRef, orderBy("date","desc"));
+    const snapshot = await getDocs(q);
+    if(snapshot.empty){ historyList.innerHTML="Нет записей"; return; }
+    historyList.innerHTML = "";
+    snapshot.forEach(d=>{
+      const data = d.data();
+      const date = data.date ? new Date(data.date).toLocaleString() : "—";
+      const amount = (typeof data.amount === "number") ? data.amount.toLocaleString('ru-RU') : String(data.amount);
+      const sign = data.amount>=0?"+":"-";
+      const div = document.createElement("div");
+      div.className="history-item";
+      div.innerHTML = `<div class="history-date">${date}</div>
+                       <div class="history-amount" style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
+      historyList.appendChild(div);
+    });
+  }catch(e){
+    console.error("Ошибка получения истории:", e);
+    historyList.innerHTML="Нет записей";
   }
-  balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
-  updateHistory();
+}
 
-  onSnapshot(balanceDocRef,(docSnap)=>{
-    if(docSnap.exists()){
-      let newBalance = docSnap.data().balance;
-      animateBalanceChange(newBalance,lastBalance,newBalance-lastBalance);
-      lastBalance = newBalance;
+// --- Инициализация баланса ---
+async function initBalance(){
+  try{
+    const docSnap = await getDoc(balanceDocRef);
+    if(docSnap && docSnap.exists()){
+      const data = docSnap.data();
+      lastBalance = (typeof data.balance === "number") ? data.balance : 0;
+    } else {
+      // default initial balance
+      lastBalance = 161000;
+      try{
+        // try to persist initial balance if rules allow
+        await setDoc(balanceDocRef,{balance:lastBalance});
+      }catch(e){
+        console.warn("Не удалось записать начальную сумму в Firestore (возможно правила безопасности). Будет отображаться локальное значение.", e);
+      }
     }
+    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
     updateHistory();
-  });
+
+    // оповещения об изменениях баланса
+    onSnapshot(balanceDocRef,(snapshotDoc)=>{
+      if(snapshotDoc && snapshotDoc.exists()){
+        let newBalance = snapshotDoc.data().balance;
+        animateBalanceChange(newBalance,lastBalance,newBalance-lastBalance);
+        lastBalance = newBalance;
+      }
+      updateHistory();
+    }, (err) => {
+      console.error("Ошибка onSnapshot:", err);
+    });
+  }catch(e){
+    console.error("Ошибка инициализации баланса:", e);
+    // fallback: показать локальную начальную сумму
+    lastBalance = lastBalance || 161000;
+    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
+    historyList.innerHTML = "Нет записей";
+  }
 }
 
+// --- Ручное добавление ---
 addBtn.onclick = async ()=>{
-  let value = parseFloat(manualAmount.value);
-  if(isNaN(value)) return alert("Введите число!");
-  const docSnap = await getDoc(balanceDocRef);
-  let currentBalance = docSnap.exists()?docSnap.data().balance:lastBalance;
-  currentBalance += value;
-  await setDoc(balanceDocRef,{balance:currentBalance});
-  await addDoc(entriesColRef,{date:new Date().toISOString(),amount:value});
-  manualAmount.value = "";
-  updateHistory();
+  try{
+    let value = parseFloat(manualAmount.value);
+    if(isNaN(value)) return alert("Введите число!");
+    const docSnap = await getDoc(balanceDocRef);
+    let currentBalance = docSnap && docSnap.exists()?docSnap.data().balance:lastBalance;
+    currentBalance = (typeof currentBalance === "number") ? (currentBalance + value) : value;
+    // try to persist
+    try{
+      await setDoc(balanceDocRef,{balance:currentBalance});
+    }catch(e){
+      console.warn("Не удалось обновить баланс в Firestore:", e);
+      // still update locally so user sees change
+      lastBalance = currentBalance;
+      balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
+    }
+    try{
+      await addDoc(entriesColRef,{date:new Date().toISOString(),amount:value});
+    }catch(e){
+      console.warn("Не удалось добавить запись в историю (Firestore):", e);
+    }
+    manualAmount.value = "";
+    updateHistory();
+  }catch(e){
+    console.error("Ошибка при ручном добавлении:", e);
+    alert("Произошла ошибка. Смотрите консоль для деталей.");
+  }
 }
 
+// --- Ежедневное добавление ставки ---
 function scheduleDailyAddition(){
   const now = new Date();
   const next22 = new Date();
@@ -209,14 +256,28 @@ function scheduleDailyAddition(){
 }
 
 async function addDailyRate(){
-  const docSnap = await getDoc(balanceDocRef);
-  let currentBalance = docSnap.exists()?docSnap.data().balance:lastBalance;
-  let todayStr = new Date().toISOString().split("T")[0];
-  let todayRate = holidays.includes(todayStr)?20000:rate;
-  currentBalance += todayRate;
-  await setDoc(balanceDocRef,{balance:currentBalance});
-  await addDoc(entriesColRef,{date:new Date().toISOString(),amount:todayRate});
-  updateHistory();
+  try{
+    const docSnap = await getDoc(balanceDocRef);
+    let currentBalance = docSnap && docSnap.exists()?docSnap.data().balance:lastBalance;
+    let todayStr = new Date().toISOString().split("T")[0];
+    let todayRate = holidays.includes(todayStr)?20000:rate;
+    currentBalance = (typeof currentBalance === "number") ? (currentBalance + todayRate) : todayRate;
+    try{
+      await setDoc(balanceDocRef,{balance:currentBalance});
+    }catch(e){
+      console.warn("Не удалось записать ежедневную ставку в Firestore:", e);
+      lastBalance = currentBalance;
+      balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
+    }
+    try{
+      await addDoc(entriesColRef,{date:new Date().toISOString(),amount:todayRate});
+    }catch(e){
+      console.warn("Не удалось добавить запись ежедневной ставки в историю:", e);
+    }
+    updateHistory();
+  }catch(e){
+    console.error("Ошибка при добавлении ежедневной ставки:", e);
+  }
 }
 
 initBalance();
