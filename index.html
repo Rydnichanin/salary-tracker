@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Учёт зарплаты – Премиум</title>
+<title>Зарплата</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
@@ -75,7 +75,6 @@ button:disabled { background:#bbb; cursor:not-allowed; }
 </div>
 
 <div id="main">
-  <h2>📅 Учёт зарплаты</h2>
   <div id="balanceDisplay">0</div>
   <input type="number" id="manualAmount" placeholder="Введите сумму (плюс/минус)">
   <button id="addBtn"><span>💰</span> Добавить/Вычесть</button>
@@ -114,25 +113,25 @@ let holidays = ["2025-01-01","2025-03-08","2025-03-21","2025-03-22","2025-03-23"
 
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
+const loginBtnEl = document.getElementById("loginBtn");
+const logoutBtnEl = document.getElementById("logoutBtn");
 const authStatus = document.getElementById("authStatus");
 
-loginBtn.onclick = async () => {
+loginBtnEl.onclick = async () => {
   try { await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value); }
   catch(e){ alert("Ошибка: "+e.message);}
 };
-logoutBtn.onclick = async()=>{await signOut(auth);}
+logoutBtnEl.onclick = async()=>{await signOut(auth);}
 
 onAuthStateChanged(auth,user=>{
   if(user){
     authStatus.textContent="Вы вошли как "+user.email;
-    loginBtn.style.display="none"; logoutBtn.style.display="inline-block";
+    loginBtnEl.style.display="none"; logoutBtnEl.style.display="inline-block";
     emailInput.style.display=passwordInput.style.display="none";
     enableEditing(true);
   } else {
     authStatus.textContent="Не авторизованы";
-    loginBtn.style.display="inline-block"; logoutBtn.style.display="none";
+    loginBtnEl.style.display="inline-block"; logoutBtnEl.style.display="none";
     emailInput.style.display=passwordInput.style.display="inline-block";
     enableEditing(false);
   }
@@ -147,9 +146,45 @@ const balanceDocRef = doc(db,"salaryData","balance");
 const changesColRef = collection(db,"salaryData","changes","entries");
 
 let lastBalance = 161000;
-let chart;
 
-// === Подгружаем баланс и обновляем анимацию ===
+// --- Инициализация графика с пустыми данными ---
+const ctx = document.getElementById('balanceChart').getContext('2d');
+let chart = new Chart(ctx,{
+    type:'line',
+    data:{labels:[],datasets:[{label:'Изменения баланса',data:[],borderColor:'#1976d2',backgroundColor:'rgba(25,118,210,0.2)',fill:true,tension:0.3}]},
+    options:{responsive:true}
+});
+
+// --- Обновление графика ---
+async function updateChart(){
+    const q = query(changesColRef, orderBy("date"));
+    const snapshot = await getDocs(q);
+    const labels = [];
+    const data = [];
+    snapshot.forEach(doc=>{
+        let d = new Date(doc.data().date);
+        labels.push(d.toLocaleDateString());
+        data.push(doc.data().amount);
+    });
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.update();
+}
+
+// --- Анимация изменения баланса ---
+function animateBalanceChange(newBalance, prevBalance){
+  let steps = 20;
+  let step = 0;
+  let interval = setInterval(()=>{
+    step++;
+    let val = prevBalance + ((newBalance - prevBalance)/steps)*step;
+    balanceDisplay.textContent = Math.round(val).toLocaleString('ru-RU');
+    if(step>=steps) clearInterval(interval);
+  },20);
+  balanceDisplay.style.color = (newBalance-prevBalance>=0)?"#2e7d32":"#c62828";
+}
+
+// --- Подписка на баланс ---
 onSnapshot(balanceDocRef,(docSnap)=>{
   if(docSnap.exists()){
     let newBalance = docSnap.data().balance;
@@ -161,21 +196,7 @@ onSnapshot(balanceDocRef,(docSnap)=>{
   updateChart();
 });
 
-function animateBalanceChange(newBalance, prevBalance){
-  let change = newBalance - prevBalance;
-  let current = prevBalance;
-  let steps = 20;
-  let step = 0;
-  let interval = setInterval(()=>{
-    step++;
-    let val = prevBalance + ((newBalance - prevBalance)/steps)*step;
-    balanceDisplay.textContent = Math.round(val).toLocaleString('ru-RU');
-    if(step>=steps) clearInterval(interval);
-  },20);
-  balanceDisplay.style.color = change>=0?"#2e7d32":"#c62828";
-}
-
-// Добавление суммы вручную
+// --- Добавление вручную ---
 addBtn.onclick = async ()=>{
   let value = parseFloat(manualAmount.value);
   if(isNaN(value)) return alert("Введите число!");
@@ -185,9 +206,10 @@ addBtn.onclick = async ()=>{
   await setDoc(balanceDocRef,{balance:currentBalance});
   await addDoc(changesColRef,{date:new Date().toISOString(),amount:value});
   manualAmount.value = "";
+  updateChart();
 }
 
-// Ежедневное добавление ставки
+// --- Ежедневное добавление ставки ---
 function scheduleDailyAddition(){
   const now = new Date();
   const next22 = new Date();
@@ -208,39 +230,7 @@ async function addDailyRate(){
   currentBalance += todayRate;
   await setDoc(balanceDocRef,{balance:currentBalance});
   await addDoc(changesColRef,{date:new Date().toISOString(),amount:todayRate});
-}
-
-// === График ===
-async function updateChart(){
-  const q = query(changesColRef, orderBy("date"));
-  const snapshot = await getDocs(q);
-  const labels = [];
-  const data = [];
-  snapshot.forEach(doc=>{
-    let d = new Date(doc.data().date);
-    labels.push(d.toLocaleDateString());
-    data.push(doc.data().amount);
-  });
-  if(chart) chart.destroy();
-  const ctx = document.getElementById('balanceChart').getContext('2d');
-  chart = new Chart(ctx,{
-    type:'line',
-    data:{
-      labels:labels,
-      datasets:[{
-        label:'Изменения баланса',
-        data:data,
-        borderColor:'#1976d2',
-        backgroundColor:'rgba(25,118,210,0.2)',
-        fill:true,
-        tension:0.3,
-      }]
-    },
-    options:{
-      responsive:true,
-      plugins:{legend:{display:true,position:'top'}}
-    }
-  });
+  updateChart();
 }
 
 scheduleDailyAddition();
