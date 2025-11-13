@@ -3,18 +3,69 @@
 <head>
 <meta charset="UTF-8">
 <title>Учёт зарплаты</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; background:#f4f6f8; border-radius:12px; box-shadow:0 0 15px rgba(0,0,0,0.1);}
-input, button { padding:5px; margin:5px 0; width:100%; box-sizing:border-box;}
-button:disabled { background:#999; cursor:not-allowed;}
-#auth-section { text-align:center; margin-bottom:20px;}
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg,#e0f7fa,#ffffff);
+  height: 100vh;
+}
+#sidebar {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 220px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+#sidebar h4 { margin:0 0 10px; color:#00796b; }
+input, button {
+  padding:8px;
+  margin:6px 0;
+  width:100%;
+  box-sizing:border-box;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:0.95em;
+}
+button {
+  background:#00796b;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  transition:0.2s;
+}
+button:hover { background:#004d40; }
+button:disabled { background:#bbb; cursor:not-allowed; }
+#authStatus { font-size:0.85em; color:#555; margin-top:5px;}
+#main {
+  max-width: 500px;
+  margin: 60px auto;
+  text-align: center;
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+#balanceDisplay {
+  font-size:2em;
+  color:#00796b;
+  margin-bottom:20px;
+  display:block;
+}
+#manualAmount, #addBtn { margin-top:15px; font-size:1em; }
+#addBtn { display:flex; align-items:center; justify-content:center; gap:5px; }
+#addBtn span { font-weight:bold; font-size:1.1em; }
 </style>
 </head>
 <body>
-<h2>📅 Учёт зарплаты</h2>
 
-<div id="auth-section">
-  <h3>Авторизация</h3>
+<div id="sidebar">
+  <h4>Авторизация</h4>
   <input type="email" id="email" placeholder="Email" />
   <input type="password" id="password" placeholder="Пароль" />
   <button id="loginBtn">Войти</button>
@@ -22,11 +73,11 @@ button:disabled { background:#999; cursor:not-allowed;}
   <p id="authStatus"></p>
 </div>
 
-<h3>Баланс: <span id="balanceDisplay">0</span> тенге</h3>
-
-<div>
+<div id="main">
+  <h2>📅 Учёт зарплаты</h2>
+  <span id="balanceDisplay">0</span>
   <input type="number" id="manualAmount" placeholder="Введите сумму (плюс/минус)">
-  <button id="addBtn">Добавить/Вычесть</button>
+  <button id="addBtn"><span>💰</span> Добавить/Вычесть</button>
 </div>
 
 <script type="module">
@@ -34,7 +85,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/fireba
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-// === Firebase config ===
 const firebaseConfig = {
   apiKey: "AIzaSyDNk1We9du5BJyrgGbQrkqd7tSDscneIOA",
   authDomain: "gold-11fa4.firebaseapp.com",
@@ -46,7 +96,6 @@ const firebaseConfig = {
   measurementId: "G-7MLLBN1YZ4"
 };
 
-// === Инициализация ===
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -55,11 +104,9 @@ const balanceDisplay = document.getElementById("balanceDisplay");
 const manualAmount = document.getElementById("manualAmount");
 const addBtn = document.getElementById("addBtn");
 
-let rate = 15000; 
+let rate = 15000;
 let holidays = ["2025-01-01","2025-03-08","2025-03-21","2025-03-22","2025-03-23","2025-05-01","2025-05-07","2025-05-09","2025-07-06","2025-08-30","2025-12-16","2025-12-17"];
-let today = new Date().toISOString().split("T")[0];
 
-// === Авторизация ===
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const loginBtn = document.getElementById("loginBtn");
@@ -91,10 +138,8 @@ function enableEditing(enabled){
   addBtn.disabled = !enabled;
 }
 
-// === Firestore doc ===
 const docRef = doc(db,"salaryData","balance");
 
-// Подгружаем баланс
 onSnapshot(docRef,(docSnap)=>{
   if(docSnap.exists()){
     balanceDisplay.textContent = docSnap.data().balance.toLocaleString('ru-RU');
@@ -103,7 +148,6 @@ onSnapshot(docRef,(docSnap)=>{
   }
 });
 
-// === Добавление/вычитание суммы вручную ===
 addBtn.onclick = async ()=>{
   let value = parseFloat(manualAmount.value);
   if(isNaN(value)) return alert("Введите число!");
@@ -114,7 +158,6 @@ addBtn.onclick = async ()=>{
   manualAmount.value = "";
 }
 
-// === Авто-добавление ставки каждый день в 22:00 ===
 function scheduleDailyAddition(){
   const now = new Date();
   const next22 = new Date();
@@ -136,7 +179,6 @@ async function addDailyRate(){
   await setDoc(docRef,{balance:currentBalance});
 }
 
-// Запуск планировщика
 scheduleDailyAddition();
 </script>
 </body>
