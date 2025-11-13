@@ -2,140 +2,49 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Зарплата</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* НОВЫЙ, более приятный фон и улучшенная карточка */
 :root{
   --accent:#00796b;
   --accent-dark:#004d40;
   --card-bg: rgba(255,255,255,0.68);
   --card-shadow: 0 12px 30px rgba(6,22,37,0.12);
 }
-
 html,body{ height:100%; }
-
 body {
   font-family: 'Inter', sans-serif;
-  margin:0;
-  padding:0;
-  min-height:100vh;
-  position:relative;
-  overflow-x:hidden;
-  /* градиент с анимацией */
+  margin:0; padding:0; min-height:100vh; position:relative; overflow-x:hidden;
   background: linear-gradient(120deg, #f0fbff 0%, #f6fff7 40%, #fffaf0 100%);
-  background-size: 200% 200%;
-  animation: bgShift 14s ease infinite;
-  color: #04363a;
+  background-size: 200% 200%; animation: bgShift 14s ease infinite; color: #04363a;
 }
-
-/* мягкие абстрактные пятна (блюр) */
-body::before,
-body::after{
-  content:"";
-  position:fixed;
-  pointer-events:none;
-  z-index:0;
-  filter: blur(90px);
-  opacity:0.55;
-}
-body::before{
-  width:640px; height:640px;
-  left:-8%;
-  top:-10%;
-  background: radial-gradient(circle at 30% 30%, rgba(0,121,107,0.14), rgba(0,121,107,0.06) 30%, transparent 60%);
-  transform: rotate(-10deg);
-}
-body::after{
-  width:520px; height:520px;
-  right:-6%;
-  bottom:-6%;
-  background: radial-gradient(circle at 70% 70%, rgba(1,87,155,0.10), rgba(1,87,155,0.04) 30%, transparent 60%);
-  transform: rotate(20deg);
-}
-
-/* главная карточка — стеклянный эффект */
-#main {
-  max-width:640px;
-  margin:80px auto;
-  text-align:center;
-  padding:34px;
-  background: var(--card-bg);
-  border-radius:20px;
-  box-shadow: var(--card-shadow);
-  color:#04363a;
-  position:relative;
-  z-index:2; /* над фоном */
-  backdrop-filter: blur(8px) saturate(120%);
-  -webkit-backdrop-filter: blur(8px) saturate(120%);
-  border: 1px solid rgba(255,255,255,0.6);
-}
-
-/* сайдбар остался но поднят по z-index */
-#sidebar {
-  position:fixed;
-  top:20px;
-  right:20px;
-  width:240px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70));
-  padding:16px 22px;
-  border-radius:14px;
-  box-shadow:0 10px 30px rgba(6,22,37,0.12);
-  transition:all 0.4s;
-  overflow:hidden;
-  z-index:3;
-  border: 1px solid rgba(255,255,255,0.6);
-}
-
+body::before, body::after{ content:""; position:fixed; pointer-events:none; z-index:0; filter: blur(90px); opacity:0.55; }
+body::before{ width:640px; height:640px; left:-8%; top:-10%; background: radial-gradient(circle at 30% 30%, rgba(0,121,107,0.14), rgba(0,121,107,0.06) 30%, transparent 60%); transform: rotate(-10deg); }
+body::after{ width:520px; height:520px; right:-6%; bottom:-6%; background: radial-gradient(circle at 70% 70%, rgba(1,87,155,0.10), rgba(1,87,155,0.04) 30%, transparent 60%); transform: rotate(20deg); }
+#main { max-width:640px; margin:80px auto; text-align:center; padding:34px; background: var(--card-bg); border-radius:20px; box-shadow: var(--card-shadow); color:#04363a; position:relative; z-index:2; backdrop-filter: blur(8px) saturate(120%); -webkit-backdrop-filter: blur(8px) saturate(120%); border: 1px solid rgba(255,255,255,0.6); }
+#sidebar { position:fixed; top:20px; right:20px; width:240px; background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70)); padding:16px 22px; border-radius:14px; box-shadow:0 10px 30px rgba(6,22,37,0.12); transition:all 0.4s; overflow:hidden; z-index:3; border: 1px solid rgba(255,255,255,0.6); }
 #sidebar h4 { margin:0; color:var(--accent); cursor:pointer; user-select:none; }
 #authForm { margin-top:10px; max-height:0; opacity:0; transition:max-height 0.4s ease, opacity 0.4s ease; overflow:hidden; }
 #authForm.show { max-height:220px; opacity:1; }
-
 input, button { padding:9px; margin:8px 0; width:100%; box-sizing:border-box; border-radius:10px; border:1px solid #dbe9e6; font-size:0.96em; }
 button { background:var(--accent); color:#fff; border:none; cursor:pointer; transition:0.18s; }
 button:hover { background:var(--accent-dark); }
 button:disabled { background:#bbb; cursor:not-allowed; }
-#authStatus { font-size:0.86em; color:#375651; margin-top:6px;}
-
-/* баланс */
+#authStatus { font-size:0.86em; color:#375651; margin-top:6px; }
 #balanceDisplay { font-size:2.6em; margin-bottom:14px; font-weight:600; letter-spacing:0.4px; }
-
-/* кнопки */
 #manualAmount, #addBtn { margin-top:14px; font-size:1em; }
 #addBtn { display:flex; align-items:center; justify-content:center; gap:8px; }
 #addBtn span { font-weight:bold; font-size:1.1em; }
-
-/* история */
 #historyContainer { margin-top:34px; text-align:left; max-height:340px; overflow-y:auto; }
 .history-item { padding:10px; margin:6px 0; background:rgba(255,255,255,0.85); border-radius:10px; box-shadow:0 4px 10px rgba(6,22,37,0.06); display:flex; justify-content:space-between; align-items:center; }
 .history-date { font-size:0.88em; color:#546c66; }
 .history-amount { font-weight:700; }
-
-/* всплывающая цифра — класс для JS анимации */
-.balance-popup{
-  position:absolute;
-  transform:translate(-50%, 0);
-  font-weight:700;
-  font-size:1.15em;
-  pointer-events:none;
-  transition: transform 900ms cubic-bezier(.2,.8,.2,1), opacity 900ms ease-out;
-  opacity:1;
-  z-index:9999;
-  will-change: transform, opacity;
-}
-
-/* небольшая адаптивность */
-@media (max-width:700px){
-  #main{ margin:60px 18px; padding:22px; }
-  #sidebar{ width:calc(100% - 40px); right:20px; left:20px; top:auto; bottom:20px; }
-}
-
-/* анимация градиента фона */
-@keyframes bgShift{
-  0%{ background-position:0% 50%; }
-  50%{ background-position:100% 50%; }
-  100%{ background-position:0% 50%; }
-}
+.balance-popup{ position:absolute; transform:translate(-50%, 0); font-weight:700; font-size:1.15em; pointer-events:none; transition: transform 900ms cubic-bezier(.2,.8,.2,1), opacity 900ms ease-out; opacity:1; z-index:9999; will-change: transform, opacity; }
+@media (max-width:700px){ #main{ margin:60px 18px; padding:22px; } #sidebar{ width:calc(100% - 40px); right:20px; left:20px; top:auto; bottom:20px; } }
+@keyframes bgShift{ 0%{ background-position:0% 50%; } 50%{ background-position:100% 50%; } 100%{ background-position:0% 50%; } }
+/* debug overlay styles (injected by script if needed) */
+#__err_overlay__{ font-family: monospace; font-size:13px; }
 </style>
 </head>
 <body>
@@ -163,8 +72,19 @@ button:disabled { background:#bbb; cursor:not-allowed; }
 </div>
 
 <script type="module">
+// Debug overlay to show uncaught errors on screen (temporary)
+(function(){
+  function showOverlay(text){
+    let o = document.getElementById('__err_overlay__');
+    if(!o){ o = document.createElement('div'); o.id='__err_overlay__'; Object.assign(o.style,{ position:'fixed', left:0, right:0, top:0, bottom:0, background:'rgba(0,0,0,0.75)', color:'#fff', zIndex:99999, padding:'20px', fontFamily:'monospace', whiteSpace:'pre-wrap', overflow:'auto' }); document.documentElement.appendChild(o); }
+    o.textContent = text;
+  }
+  window.addEventListener('error', function(e){ showOverlay('Uncaught error: ' + (e && e.message ? e.message : e)); console.error(e.error || e); });
+  window.addEventListener('unhandledrejection', function(e){ showOverlay('Unhandled promise rejection: ' + (e && e.reason ? (e.reason.message || e.reason) : e)); console.error(e.reason || e); });
+})();
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -188,7 +108,7 @@ const addBtn = document.getElementById("addBtn");
 const historyList = document.getElementById("historyList");
 
 let rate = 15000;
-let lastBalance = 0; 
+let lastBalance = 0;
 let holidays = ["2025-01-01","2025-03-08","2025-03-21","2025-03-22","2025-03-23","2025-05-01","2025-05-07","2025-05-09","2025-07-06","2025-08-30","2025-12-16","2025-12-17"];
 
 const emailInput = document.getElementById("email");
@@ -199,18 +119,17 @@ const authStatus = document.getElementById("authStatus");
 const toggleAuth = document.getElementById("toggleAuth");
 const authForm = document.getElementById("authForm");
 
-// Сворачивание/разворачивание формы
+// UI auth toggle
 toggleAuth.onclick = ()=>{ authForm.classList.toggle("show"); }
-
 loginBtnEl.onclick = async () => { try { await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value);} catch(e){ alert("Ошибка: "+e.message);} };
-logoutBtnEl.onclick = async()=>{await signOut(auth);}
+logoutBtnEl.onclick = async()=>{await signOut(auth); }
 
 onAuthStateChanged(auth,user=>{
   if(user){
     authStatus.textContent="Вы вошли как "+user.email;
     loginBtnEl.style.display="none"; logoutBtnEl.style.display="inline-block";
     emailInput.style.display=passwordInput.style.display="none";
-    authForm.classList.remove("show"); 
+    authForm.classList.remove("show");
     toggleAuth.textContent="Пользователь авторизован";
     enableEditing(true);
   } else {
@@ -222,122 +141,139 @@ onAuthStateChanged(auth,user=>{
   }
 });
 
-function enableEditing(enabled){
-  manualAmount.disabled = !enabled;
-  addBtn.disabled = !enabled;
-}
+function enableEditing(enabled){ manualAmount.disabled = !enabled; addBtn.disabled = !enabled; }
 
+// Document & entries subcollection
 const balanceDocRef = doc(db,"salaryData","balance");
-const entriesColRef = collection(db,"salaryData","entries");
+const entriesColRef = collection(balanceDocRef, "entries");
 
-// --- Анимация изменения баланса ---
-function animateBalanceChange(newBalance, prevBalance, changeAmount=0){
-  let steps = 20;
-  let step = 0;
-  let interval = setInterval(()=>{
-    step++;
-    let val = prevBalance + ((newBalance - prevBalance)/steps)*step;
-    balanceDisplay.textContent = Math.round(val).toLocaleString('ru-RU');
-    if(step>=steps) clearInterval(interval);
-  },20);
-  balanceDisplay.style.color = (newBalance-prevBalance>=0)?"#2e7d32":"#c62828";
+// --- Более надежная анимация изменения баланса + всплывающая цифра ---
+function animateBalanceChange(newBalance, prevBalance, changeAmount = 0){
+  const duration = 400;
+  const start = performance.now();
+  const from = Number(prevBalance) || 0;
+  const to = Number(newBalance) || 0;
+  balanceDisplay.style.color = (to - from >= 0) ? "#2e7d32" : "#c62828";
+
+  function step(now){
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const val = Math.round(from + (to - from) * eased);
+    balanceDisplay.textContent = val.toLocaleString('ru-RU');
+    if(t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 
   if(changeAmount !== 0){
+    const rect = balanceDisplay.getBoundingClientRect();
     const anim = document.createElement("div");
-    anim.id="balanceChangeAnim";
-    anim.textContent = (changeAmount>0?"+":"-")+Math.abs(changeAmount).toLocaleString('ru-RU');
-    anim.style.color = (changeAmount>0?"#2e7d32":"#c62828");
-    anim.style.left = balanceDisplay.getBoundingClientRect().left + window.scrollX + "px";
-    anim.style.top = balanceDisplay.getBoundingClientRect().top + window.scrollY - 30 + "px";
+    anim.className = "balance-popup";
+    anim.textContent = (changeAmount > 0 ? "+" : "-") + Math.abs(changeAmount).toLocaleString('ru-RU');
+    Object.assign(anim.style, {
+      left: (rect.left + window.scrollX + rect.width / 2) + "px",
+      top: (rect.top + window.scrollY - 10) + "px",
+    });
     document.body.appendChild(anim);
-    setTimeout(()=>{
-      anim.style.top = (balanceDisplay.getBoundingClientRect().top + window.scrollY - 60) + "px";
-      anim.style.opacity = "0";
-    },50);
-    setTimeout(()=>anim.remove(),1000);
+    requestAnimationFrame(()=>{ anim.style.transform = "translate(-50%, -48px)"; anim.style.opacity = "0"; });
+    setTimeout(()=>anim.remove(), 1000);
   }
 }
 
-// --- Обновление истории ---
+// --- История: чтение и рендеринг ---
 async function updateHistory(){
-  const q = query(entriesColRef, orderBy("date","desc"));
-  const snapshot = await getDocs(q);
-  if(snapshot.empty){ historyList.innerHTML="Нет записей"; return; }
-  historyList.innerHTML = "";
-  snapshot.forEach(doc=>{
-    const data = doc.data();
-    const date = new Date(data.date).toLocaleString();
-    const amount = data.amount.toLocaleString('ru-RU');
-    const sign = data.amount>=0?"+":"-";
-    const div = document.createElement("div");
-    div.className="history-item";
-    div.innerHTML = `<div class="history-date">${date}</div>
-                     <div class="history-amount" style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
-    historyList.appendChild(div);
-  });
+  try{
+    const q = query(entriesColRef, orderBy("date","desc"));
+    const snapshot = await getDocs(q);
+    if(snapshot.empty){ historyList.innerHTML="Нет записей"; return; }
+    historyList.innerHTML = "";
+    snapshot.forEach(d=>{
+      const data = d.data();
+      let dateStr = "—";
+      if(data.date && typeof data.date.toDate === "function"){ dateStr = data.date.toDate().toLocaleString(); }
+      else if(data.date){ dateStr = new Date(data.date).toLocaleString(); }
+      const amount = (typeof data.amount === "number") ? data.amount.toLocaleString('ru-RU') : String(data.amount);
+      const sign = data.amount >= 0 ? "+" : "-";
+      const div = document.createElement("div");
+      div.className = "history-item";
+      div.innerHTML = `<div class="history-date">${dateStr}</div>
+                       <div class="history-amount" style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
+      historyList.appendChild(div);
+    });
+  }catch(e){ console.error("Ошибка получения истории:", e); historyList.innerHTML = "Нет записей"; }
+}
+
+// --- Atomically update balance + add history entry (reliable) ---
+async function commitBalanceChange(amount){
+  try{
+    const balSnap = await getDoc(balanceDocRef);
+    let current = balSnap && balSnap.exists() && typeof balSnap.data().balance === "number" ? balSnap.data().balance : lastBalance || 0;
+    const newBalance = current + Number(amount);
+
+    try{
+      const batch = writeBatch(db);
+      batch.set(balanceDocRef, { balance: newBalance });
+      const newEntryRef = doc(entriesColRef);
+      batch.set(newEntryRef, { date: serverTimestamp(), amount: Number(amount) });
+      await batch.commit();
+      return newBalance;
+    }catch(err){
+      console.warn("Batch commit failed, falling back to sequential writes:", err);
+      await setDoc(balanceDocRef,{balance:newBalance});
+      try{ await addDoc(entriesColRef, { date: new Date().toISOString(), amount: Number(amount) }); }
+      catch(e2){ console.warn("Не удалось добавить запись в подколлекцию через addDoc:", e2); const fallbackRef = doc(entriesColRef); await setDoc(fallbackRef, { date: new Date().toISOString(), amount: Number(amount) }); }
+      return newBalance;
+    }
+  }catch(err){ console.error("commitBalanceChange error:", err); throw err; }
 }
 
 // --- Инициализация баланса ---
 async function initBalance(){
-  const docSnap = await getDoc(balanceDocRef);
-  if(docSnap.exists()){
-    lastBalance = docSnap.data().balance;
-  } else {
-    lastBalance = 161000;
-    await setDoc(balanceDocRef,{balance:lastBalance});
-  }
-  balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
-  updateHistory();
-
-  onSnapshot(balanceDocRef,(docSnap)=>{
-    if(docSnap.exists()){
-      let newBalance = docSnap.data().balance;
-      animateBalanceChange(newBalance,lastBalance,newBalance-lastBalance);
-      lastBalance = newBalance;
+  try{
+    const docSnap = await getDoc(balanceDocRef);
+    if(docSnap && docSnap.exists()){
+      const data = docSnap.data(); lastBalance = (typeof data.balance === "number") ? data.balance : Number(data.balance) || 0;
+    } else {
+      lastBalance = 161000; try{ await setDoc(balanceDocRef,{balance:lastBalance}); }catch(e){ console.warn("Не удалось записать начальную сумму в Firestore:", e); }
     }
+    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
     updateHistory();
-  });
+
+    onSnapshot(balanceDocRef,(snapshotDoc)=>{
+      if(snapshotDoc && snapshotDoc.exists()){
+        let newBalance = snapshotDoc.data().balance;
+        animateBalanceChange(newBalance,lastBalance,newBalance-lastBalance);
+        lastBalance = newBalance;
+      }
+      updateHistory();
+    }, (err)=>{ console.error("onSnapshot error:", err); });
+
+  }catch(e){ console.error("Ошибка инициализации баланса:", e); lastBalance = lastBalance || 161000; balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU'); historyList.innerHTML = "Нет записей"; }
 }
 
-// --- Ручное добавление ---
+// --- Ручное добавление: использует commitBalanceChange ---
 addBtn.onclick = async ()=>{
-  let value = parseFloat(manualAmount.value);
-  if(isNaN(value)) return alert("Введите число!");
-  const docSnap = await getDoc(balanceDocRef);
-  let currentBalance = docSnap.exists()?docSnap.data().balance:lastBalance;
-  currentBalance += value;
-  await setDoc(balanceDocRef,{balance:currentBalance});
-  await addDoc(entriesColRef,{date:new Date().toISOString(),amount:value});
-  manualAmount.value = "";
-  updateHistory();
+  try{
+    let value = parseFloat(manualAmount.value);
+    if(isNaN(value)) return alert("Введите число!");
+    addBtn.disabled = true;
+    const newBalance = await commitBalanceChange(value);
+    animateBalanceChange(newBalance, lastBalance, value);
+    lastBalance = newBalance;
+    manualAmount.value = "";
+    updateHistory();
+  }catch(e){ console.error("Ошибка при ручном добавлении:", e); alert("Не удалось сохранить изменение. Смотрите консоль."); }
+  finally{ addBtn.disabled = false; }
 }
 
 // --- Ежедневное добавление ставки ---
-function scheduleDailyAddition(){
-  const now = new Date();
-  const next22 = new Date();
-  next22.setHours(22,0,0,0);
-  if(now>next22) next22.setDate(next22.getDate()+1);
-  const msUntil22 = next22 - now;
-  setTimeout(async ()=>{
-    await addDailyRate();
-    scheduleDailyAddition();
-  }, msUntil22);
-}
-
 async function addDailyRate(){
-  const docSnap = await getDoc(balanceDocRef);
-  let currentBalance = docSnap.exists()?docSnap.data().balance:lastBalance;
-  let todayStr = new Date().toISOString().split("T")[0];
-  let todayRate = holidays.includes(todayStr)?20000:rate;
-  currentBalance += todayRate;
-  await setDoc(balanceDocRef,{balance:currentBalance});
-  await addDoc(entriesColRef,{date:new Date().toISOString(),amount:todayRate});
-  updateHistory();
+  try{ let todayStr = new Date().toISOString().split("T")[0]; let todayRate = holidays.includes(todayStr) ? 20000 : rate; const newBalance = await commitBalanceChange(todayRate); animateBalanceChange(newBalance, lastBalance, todayRate); lastBalance = newBalance; updateHistory(); }
+  catch(e){ console.error("Ошибка при добавлении ежедневной ставки:", e); }
 }
+function scheduleDailyAddition(){ const now = new Date(); const next22 = new Date(); next22.setHours(22,0,0,0); if(now>next22) next22.setDate(next22.getDate()+1); const msUntil22 = next22 - now; setTimeout(async ()=>{ await addDailyRate(); scheduleDailyAddition(); }, msUntil22); }
 
-initBalance();
-scheduleDailyAddition();
+// start
+initBalance(); scheduleDailyAddition();
 </script>
 </body>
 </html>
