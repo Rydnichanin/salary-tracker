@@ -9,18 +9,19 @@
 :root{ --accent:#00796b; --accent-dark:#004d40; --card-bg: rgba(255,255,255,0.78); --card-shadow: 0 12px 30px rgba(6,22,37,0.12); }
 html,body{ height:100%; margin:0; font-family:'Inter',sans-serif; background:linear-gradient(120deg,#f0fbff 0%,#f6fff7 40%,#fffaf0 100%); color:#04363a; }
 #main{ max-width:640px; margin:80px auto; text-align:center; padding:34px; background:var(--card-bg); border-radius:20px; box-shadow:var(--card-shadow); }
-#sidebar{ position:fixed; top:20px; right:20px; width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70)); padding:16px 22px; border-radius:14px; box-shadow:0 12px 30px rgba(6,22,37,0.08); }
+#sidebar{ position:fixed; top:20px; right:20px; width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70)); padding:16px 22px; border-radius:14px; box-shadow:0 12px 30px rgba(6,22,37,0.08); z-index:2; }
 #sidebar h4{ margin:0; color:var(--accent); cursor:pointer; user-select:none; }
 #authForm{ margin-top:10px; max-height:0; opacity:0; overflow:hidden; transition:max-height 0.28s, opacity 0.28s; }
 #authForm.show{ max-height:220px; opacity:1; }
 input,button{ padding:9px; margin:8px 0; width:100%; border-radius:10px; border:1px solid #dbe9e6; font-size:0.96em; }
-button{ background:var(--accent); color:#fff; border:none; cursor:pointer; }
+button{ background:var(--accent); color:#fff; border:none; cursor:pointer; transition:0.18s; }
 button:hover{ background:var(--accent-dark); }
 button:disabled{ background:#bbb; cursor:not-allowed; }
 #balanceDisplay{ font-size:2.6em; margin-bottom:14px; font-weight:600; }
 #manualAmount,#addBtn{ margin-top:14px; font-size:1em; }
 #historyContainer{ margin-top:34px; text-align:left; max-height:340px; overflow-y:auto; }
 .history-item{ padding:10px; margin:6px 0; background:rgba(255,255,255,0.85); border-radius:10px; display:flex; justify-content:space-between; align-items:center; }
+@media (max-width:700px){ #main{ margin:60px 18px; padding:22px; } #sidebar{ width:calc(100% - 40px); right:20px; left:20px; top:auto; bottom:20px; } }
 </style>
 </head>
 <body>
@@ -28,8 +29,8 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
 <div id="sidebar">
   <h4 id="toggleAuth">Авторизация</h4>
   <div id="authForm">
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Пароль">
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Пароль" />
     <button id="loginBtn">Войти</button>
     <button id="logoutBtn" style="display:none;">Выйти</button>
     <p id="authStatus">Не авторизованы</p>
@@ -39,7 +40,7 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
 <div id="main">
   <div id="balanceDisplay">0</div>
   <input type="number" id="manualAmount" placeholder="Введите сумму (плюс/минус)">
-  <button id="addBtn">💰 Добавить/Вычесть</button>
+  <button id="addBtn"><span>💰</span> Добавить/Вычесть</button>
 
   <div id="historyContainer">
     <h4>История изменений:</h4>
@@ -48,18 +49,33 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
 </div>
 
 <script type="module">
+// Уведомления
+function showToast(text, timeout = 3500){
+  let t = document.getElementById('__app_toast__');
+  if(!t){ t = document.createElement('div'); t.id='__app_toast__';
+    Object.assign(t.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',background:'rgba(6,22,37,0.9)',color:'#fff',padding:'10px 16px',borderRadius:'10px',zIndex:99999,fontFamily:'Inter, sans-serif',fontSize:'14px'});
+    document.body.appendChild(t);
+  }
+  t.textContent = text; t.style.opacity='1';
+  clearTimeout(t.__hideTimer);
+  t.__hideTimer = setTimeout(()=> t.style.opacity='0', timeout);
+}
+
+// Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, orderBy, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-// Firebase config
-const firebaseConfig = { 
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+// Твои реальные ключи Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyDNk1We9du5BJyrgGbQrkqd7tSDscneIOA",
+  authDomain: "gold-11fa4.firebaseapp.com",
+  databaseURL: "https://gold-11fa4-default-rtdb.firebaseio.com",
+  projectId: "gold-11fa4",
+  storageBucket: "gold-11fa4.appspot.com",
+  messagingSenderId: "226774330161",
+  appId: "1:226774330161:web:d1e1c93ade5dcea31d5e10",
+  measurementId: "G-7MLLBN1YZ4"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -78,23 +94,19 @@ const authStatus = document.getElementById("authStatus");
 const toggleAuth = document.getElementById("toggleAuth");
 const authForm = document.getElementById("authForm");
 
-const SALARY_PER_DAY = 15000;
+const DAILY_RATE = 15000;
 let lastBalance = 176000;
-
 const balanceDocRef = doc(db,"salaryData","balance");
 const entriesColRef = collection(balanceDocRef,"entries");
 
 // UI
 toggleAuth.onclick = ()=> authForm.classList.toggle("show");
-loginBtnEl.onclick = async ()=> { try { await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value); alert("Вход выполнен"); } catch(e){ console.error(e); alert(e.message); } };
-logoutBtnEl.onclick = async ()=> { try { await signOut(auth); alert("Вы вышли"); } catch(e){ console.error(e); alert(e.message); } };
+loginBtnEl.onclick = async ()=> { try{ await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value); showToast('Вход выполнен'); } catch(e){ showToast(e.message); } };
+logoutBtnEl.onclick = async ()=> { try{ await signOut(auth); showToast('Вы вышли'); } catch(e){ showToast(e.message); } };
 function enableEditing(enabled){ manualAmount.disabled = !enabled; addBtn.disabled = !enabled; }
 
-function animateBalanceChange(newBalance){
-  balanceDisplay.textContent = Math.round(newBalance).toLocaleString('ru-RU');
-}
+function animateBalanceChange(newBalance){ balanceDisplay.textContent = Math.round(newBalance).toLocaleString('ru-RU'); }
 
-// История изменений
 async function updateHistory(){
   try{
     const q = query(entriesColRef, orderBy("date","desc"));
@@ -110,82 +122,44 @@ async function updateHistory(){
       div.innerHTML = `<div>${dateStr}</div><div style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${Math.abs(data.amount).toLocaleString('ru-RU')}</div>`;
       historyList.appendChild(div);
     });
-  }catch(e){ console.error(e); }
+  } catch(e){ console.warn(e); }
 }
 
 // Начисление за пропущенные дни
-async function updateDailyBalance(){
+async function addDailyRate(){
   try{
     const snap = await getDoc(balanceDocRef);
-    let balance = 176000;
-    let lastAddedDate = null;
-
-    if(snap.exists){
-      const data = snap.data();
-      balance = data.balance ?? 176000;
-      lastAddedDate = data.lastAddedDate?.toDate ?? new Date();
-    }
-
+    let balance = lastBalance || 176000;
+    let lastAdded = snap.exists && snap.data().lastAddedDate ? snap.data().lastAddedDate.toDate() : new Date();
+    lastAdded.setHours(0,0,0,0);
     const today = new Date(); today.setHours(0,0,0,0);
-    let daysToAdd = 0;
-
-    if(lastAddedDate){
-      lastAddedDate.setHours(0,0,0,0);
-      const diffTime = today - lastAddedDate;
-      daysToAdd = Math.floor(diffTime / (1000*60*60*24));
-    } else { daysToAdd = 1; }
-
-    if(daysToAdd > 0){
-      const addedAmount = daysToAdd * SALARY_PER_DAY;
-      balance += addedAmount;
-      await setDoc(balanceDocRef,{ balance, lastAddedDate: today }, { merge:true });
-      await addDoc(entriesColRef,{ date: serverTimestamp(), amount: addedAmount });
+    let daysDiff = Math.floor((today - lastAdded)/(1000*60*60*24));
+    if(daysDiff>0){
+      const added = daysDiff*DAILY_RATE;
+      balance += added;
+      await setDoc(balanceDocRef,{ balance, lastAddedDate: today },{ merge:true });
+      await addDoc(entriesColRef,{ date: serverTimestamp(), amount: added });
     }
-
     lastBalance = balance;
     animateBalanceChange(balance);
     updateHistory();
-  } catch(e){ console.error(e); }
+  } catch(e){ console.warn(e); }
 }
 
-// Инициализация баланса при загрузке
-async function initBalance(){
-  try {
-    const snap = await getDoc(balanceDocRef);
-    if(snap.exists){
-      const data = snap.data();
-      lastBalance = data.balance ?? 176000;
-      await updateDailyBalance();
-    } else {
-      lastBalance = 176000;
-      await setDoc(balanceDocRef,{
-        balance: lastBalance,
-        lastAddedDate: new Date()
-      });
-    }
-    animateBalanceChange(lastBalance);
-    updateHistory();
-  } catch(e){
-    console.error("Ошибка инициализации баланса:", e);
-    lastBalance = 176000;
-    animateBalanceChange(lastBalance);
-  }
-}
-
-// Добавление вручную
+// Ручное добавление
 addBtn.onclick = async ()=>{
-  let value = parseFloat(manualAmount.value);
-  if(isNaN(value)) return alert("Введите число!");
-  const newBalance = lastBalance + value;
-  await setDoc(balanceDocRef,{ balance: newBalance, lastAddedDate: new Date() }, { merge:true });
-  await addDoc(entriesColRef,{ date: serverTimestamp(), amount: value });
+  let val = parseFloat(manualAmount.value);
+  if(isNaN(val)){ showToast("Введите число!"); return; }
+  const newBalance = lastBalance + val;
+  await setDoc(balanceDocRef,{ balance:newBalance, lastAddedDate:new Date() },{ merge:true });
+  await addDoc(entriesColRef,{ date: serverTimestamp(), amount: val });
   lastBalance = newBalance;
   animateBalanceChange(newBalance);
   manualAmount.value="";
   updateHistory();
 };
 
-// Автоскрытие формы после входа
+// Авторизация
 onAuthStateChanged(auth,user=>{
   if(user){
     authStatus.textContent="Вы вошли как "+user.email;
@@ -205,14 +179,14 @@ onAuthStateChanged(auth,user=>{
   }
 });
 
-// Клик вне сайдбара сворачивает форму
+// Сворачивание формы при клике вне
 document.addEventListener('click',(e)=>{
   const sidebar = document.getElementById('sidebar');
   if(!sidebar.contains(e.target)) authForm.classList.remove('show');
 });
 
 // Запуск
-initBalance();
+addDailyRate();
 </script>
 </body>
 </html>
