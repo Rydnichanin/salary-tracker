@@ -32,7 +32,7 @@ button { background:var(--accent); color:#fff; border:none; cursor:pointer; tran
 button:hover { background:var(--accent-dark); }
 button:disabled { background:#bbb; cursor:not-allowed; }
 #authStatus { font-size:0.86em; color:#375651; margin-top:6px; }
-#balanceDisplay { font-size:2.6em; margin-bottom:14px; font-weight:600; letter-spacing:0.4px; position:relative; }
+#balanceDisplay { font-size:2.6em; margin-bottom:14px; font-weight:600; letter-spacing:0.4px; }
 #manualAmount, #addBtn { margin-top:14px; font-size:1em; }
 #addBtn { display:flex; align-items:center; justify-content:center; gap:8px; }
 #addBtn span { font-weight:bold; font-size:1.1em; }
@@ -71,7 +71,7 @@ button:disabled { background:#bbb; cursor:not-allowed; }
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, query, orderBy, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, getDocs, writeBatch, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -95,7 +95,7 @@ const addBtn = document.getElementById("addBtn");
 const historyList = document.getElementById("historyList");
 
 let rate = 15000;
-let lastBalance = 161000; // стартовая сумма
+let lastBalance = 161000; // начальная сумма
 let holidays = ["2025-01-01","2025-03-08","2025-03-21","2025-03-22","2025-03-23","2025-05-01","2025-05-07","2025-05-09","2025-07-06","2025-08-30","2025-12-16","2025-12-17"];
 
 const emailInput = document.getElementById("email");
@@ -111,13 +111,29 @@ toggleAuth.onclick = ()=>{ authForm.classList.toggle("show"); }
 loginBtnEl.onclick = async () => { try { await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value);} catch(e){ alert("Ошибка: "+e.message);} };
 logoutBtnEl.onclick = async()=>{await signOut(auth); }
 
+onAuthStateChanged(auth,user=>{
+  if(user){
+    authStatus.textContent="Вы вошли как "+user.email;
+    loginBtnEl.style.display="none"; logoutBtnEl.style.display="inline-block";
+    emailInput.style.display=passwordInput.style.display="none";
+    authForm.classList.remove("show");
+    toggleAuth.textContent="Пользователь авторизован";
+    enableEditing(true);
+  } else {
+    authStatus.textContent="Не авторизованы";
+    loginBtnEl.style.display="inline-block"; logoutBtnEl.style.display="none";
+    emailInput.style.display=passwordInput.style.display="inline-block";
+    toggleAuth.textContent="Авторизация";
+    enableEditing(false);
+  }
+});
+
 function enableEditing(enabled){ manualAmount.disabled = !enabled; addBtn.disabled = !enabled; }
 
-// Firestore refs
 const balanceDocRef = doc(db,"salaryData","balance");
 const entriesColRef = collection(balanceDocRef, "entries");
 
-// Animate balance change + popup
+// --- Анимация изменения баланса ---
 function animateBalanceChange(newBalance, prevBalance, changeAmount = 0){
   const duration = 400;
   const start = performance.now();
@@ -149,7 +165,7 @@ function animateBalanceChange(newBalance, prevBalance, changeAmount = 0){
   }
 }
 
-// Update history
+// --- История ---
 async function updateHistory(){
   try{
     const q = query(entriesColRef, orderBy("date","desc"));
@@ -159,102 +175,93 @@ async function updateHistory(){
     snapshot.forEach(d=>{
       const data = d.data();
       let dateStr = data.date?.toDate ? data.date.toDate().toLocaleString() : new Date(data.date).toLocaleString();
-      const amount = data.amount.toLocaleString('ru-RU');
+      const amount = Number(data.amount).toLocaleString('ru-RU');
       const sign = data.amount>=0 ? "+" : "-";
       const div = document.createElement("div");
-      div.className="history-item";
+      div.className = "history-item";
       div.innerHTML = `<div class="history-date">${dateStr}</div>
                        <div class="history-amount" style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
       historyList.appendChild(div);
     });
-  }catch(e){ console.error(e); historyList.innerHTML="Нет записей"; }
+  }catch(e){ console.error(e); historyList.innerHTML = "Нет записей"; }
 }
 
-// Commit balance + entry
+// --- Транзакция для обновления баланса ---
 async function commitBalanceChange(amount){
-  const balSnap = await getDoc(balanceDocRef);
-  let current = balSnap.exists() ? balSnap.data().balance : lastBalance;
-  const newBalance = current + Number(amount);
+  try {
+    const newBalance = await runTransaction(db, async (transaction) => {
+      const docSnap = await transaction.get(balanceDocRef);
+      let current = (docSnap.exists() && typeof docSnap.data().balance === "number") ? docSnap.data().balance : lastBalance || 0;
+      const updated = current + Number(amount);
+      transaction.set(balanceDocRef, { balance: updated });
+      const newEntryRef = doc(entriesColRef);
+      transaction.set(newEntryRef, { date: serverTimestamp(), amount: Number(amount) });
+      return updated;
+    });
 
-  const batch = writeBatch(db);
-  batch.set(balanceDocRef,{balance:newBalance});
-  const newEntryRef = doc(entriesColRef);
-  batch.set(newEntryRef,{date: serverTimestamp(), amount:Number(amount)});
-  await batch.commit();
-  return newBalance;
+    animateBalanceChange(newBalance, lastBalance, Number(amount));
+    lastBalance = newBalance;
+    updateHistory();
+    return newBalance;
+
+  } catch (err) { console.error("Ошибка при commitBalanceChange:", err); throw err; }
 }
 
-// Init balance
+// --- Инициализация ---
 async function initBalance(){
-  const docSnap = await getDoc(balanceDocRef);
-  if(docSnap.exists()){ lastBalance = docSnap.data().balance || lastBalance; }
-  balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
-  updateHistory();
+  try{
+    const docSnap = await getDoc(balanceDocRef);
+    if(docSnap && docSnap.exists()){ lastBalance = docSnap.data().balance || lastBalance; }
+    else{ await setDoc(balanceDocRef,{balance:lastBalance}); }
+    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
+    updateHistory();
 
-  onSnapshot(balanceDocRef,(snapshotDoc)=>{
-    if(snapshotDoc.exists()){
-      const newBalance = snapshotDoc.data().balance;
-      animateBalanceChange(newBalance,lastBalance,newBalance-lastBalance);
-      lastBalance = newBalance;
-      updateHistory();
-    }
-  });
+    onSnapshot(balanceDocRef,(snapshotDoc)=>{
+      if(snapshotDoc.exists()){
+        const newBalance = snapshotDoc.data().balance;
+        if(newBalance !== lastBalance){
+          animateBalanceChange(newBalance,lastBalance,newBalance-lastBalance);
+          lastBalance = newBalance;
+          updateHistory();
+        }
+      }
+    }, (err)=>{ console.error("onSnapshot error:", err); });
+
+  }catch(e){ console.error("Ошибка инициализации баланса:", e); balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU'); }
 }
 
-// Manual add
+// --- Ручное добавление ---
 addBtn.onclick = async ()=>{
-  let val = parseFloat(manualAmount.value);
-  if(isNaN(val)) return alert("Введите число!");
+  let value = parseFloat(manualAmount.value);
+  if(isNaN(value)) return alert("Введите число!");
   addBtn.disabled = true;
-  const newBalance = await commitBalanceChange(val);
-  animateBalanceChange(newBalance,lastBalance,val);
-  lastBalance = newBalance;
-  manualAmount.value="";
-  updateHistory();
-  addBtn.disabled=false;
+  try{ await commitBalanceChange(value); manualAmount.value=""; } 
+  catch(e){ alert("Не удалось сохранить изменение."); console.error(e); }
+  finally{ addBtn.disabled = false; }
 }
 
-// Daily addition
+// --- Ежедневное добавление ---
 async function addDailyRate(){
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todayRate = holidays.includes(todayStr) ? 20000 : rate;
-  const newBalance = await commitBalanceChange(todayRate);
-  animateBalanceChange(newBalance,lastBalance,todayRate);
-  lastBalance = newBalance;
-  updateHistory();
+  try{
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todayRate = holidays.includes(todayStr) ? 20000 : rate;
+    const newBalance = await commitBalanceChange(todayRate);
+    lastBalance = newBalance;
+  }catch(e){ console.error("Ошибка при добавлении ежедневной ставки:", e); }
 }
-
 function scheduleDailyAddition(){
   const now = new Date();
-  let next22 = new Date();
-  next22.setHours(22,0,0,0);
+  const next22 = new Date(); next22.setHours(22,0,0,0);
   if(now>next22) next22.setDate(next22.getDate()+1);
   setTimeout(async ()=>{
     await addDailyRate();
     scheduleDailyAddition();
-  }, next22 - now);
+  }, next22-now);
 }
 
-// Auth state listener
-onAuthStateChanged(auth,user=>{
-  if(user){
-    authStatus.textContent="Вы вошли как "+user.email;
-    loginBtnEl.style.display="none"; logoutBtnEl.style.display="inline-block";
-    emailInput.style.display=passwordInput.style.display="none";
-    authForm.classList.remove("show");
-    toggleAuth.textContent="Пользователь авторизован";
-    enableEditing(true);
-  } else {
-    authStatus.textContent="Не авторизованы";
-    loginBtnEl.style.display="inline-block"; logoutBtnEl.style.display="none";
-    emailInput.style.display=passwordInput.style.display="inline-block";
-    toggleAuth.textContent="Авторизация";
-    enableEditing(false);
-  }
-});
-
-// Start
-initBalance(); scheduleDailyAddition();
+// --- Запуск ---
+initBalance();
+scheduleDailyAddition();
 </script>
 </body>
 </html>
