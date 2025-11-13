@@ -23,11 +23,15 @@ button:disabled { background:#999; cursor:not-allowed;}
 </div>
 
 <h3>Баланс: <span id="balanceDisplay">0</span> тенге</h3>
-<button id="saveBtn">💾 Сохранить сейчас</button>
+
+<div>
+  <input type="number" id="manualAmount" placeholder="Введите сумму (плюс/минус)">
+  <button id="addBtn">Добавить/Вычесть</button>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 // === Firebase config ===
@@ -48,10 +52,10 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const balanceDisplay = document.getElementById("balanceDisplay");
-const saveBtn = document.getElementById("saveBtn");
+const manualAmount = document.getElementById("manualAmount");
+const addBtn = document.getElementById("addBtn");
 
-// Настройки
-let rate = 15000; // ставка за день
+let rate = 15000; 
 let holidays = ["2025-01-01","2025-03-08","2025-03-21","2025-03-22","2025-03-23","2025-05-01","2025-05-07","2025-05-09","2025-07-06","2025-08-30","2025-12-16","2025-12-17"];
 let today = new Date().toISOString().split("T")[0];
 
@@ -83,8 +87,8 @@ onAuthStateChanged(auth,user=>{
 });
 
 function enableEditing(enabled){
-  const inputs=document.querySelectorAll("input,button");
-  inputs.forEach(el=>{ if(el.id!=="loginBtn" && el.id!=="logoutBtn" && el.id!=="email" && el.id!=="password"){el.disabled=!enabled}});
+  manualAmount.disabled = !enabled;
+  addBtn.disabled = !enabled;
 }
 
 // === Firestore doc ===
@@ -95,17 +99,20 @@ onSnapshot(docRef,(docSnap)=>{
   if(docSnap.exists()){
     balanceDisplay.textContent = docSnap.data().balance.toLocaleString('ru-RU');
   } else {
-    setDoc(docRef,{balance:161000}); // стартовая сумма
+    setDoc(docRef,{balance:161000});
   }
 });
 
-// Сохраняем вручную
-saveBtn.onclick = async ()=>{
+// === Добавление/вычитание суммы вручную ===
+addBtn.onclick = async ()=>{
+  let value = parseFloat(manualAmount.value);
+  if(isNaN(value)) return alert("Введите число!");
   const docSnap = await getDoc(docRef);
   let currentBalance = docSnap.exists()?docSnap.data().balance:161000;
+  currentBalance += value;
   await setDoc(docRef,{balance:currentBalance});
-  alert("Сохранено!");
-};
+  manualAmount.value = "";
+}
 
 // === Авто-добавление ставки каждый день в 22:00 ===
 function scheduleDailyAddition(){
@@ -116,7 +123,7 @@ function scheduleDailyAddition(){
   const msUntil22 = next22 - now;
   setTimeout(async ()=>{
     await addDailyRate();
-    scheduleDailyAddition(); // рекурсивно на следующий день
+    scheduleDailyAddition();
   }, msUntil22);
 }
 
