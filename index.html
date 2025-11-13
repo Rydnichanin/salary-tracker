@@ -18,11 +18,21 @@ body {
   right: 20px;
   width: 220px;
   background: #ffffff;
-  padding: 20px;
+  padding: 15px 20px;
   border-radius: 15px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  transition: all 0.3s;
 }
-#sidebar h4 { margin:0 0 10px; color:#00796b; }
+#sidebar h4 {
+  margin:0;
+  color:#00796b;
+  cursor: pointer;
+  user-select: none;
+}
+#authForm {
+  margin-top: 10px;
+  display: none;
+}
 input, button {
   padding:8px;
   margin:6px 0;
@@ -68,12 +78,14 @@ button:disabled { background:#bbb; cursor:not-allowed; }
 <body>
 
 <div id="sidebar">
-  <h4>Авторизация</h4>
-  <input type="email" id="email" placeholder="Email" />
-  <input type="password" id="password" placeholder="Пароль" />
-  <button id="loginBtn">Войти</button>
-  <button id="logoutBtn" style="display:none;">Выйти</button>
-  <p id="authStatus"></p>
+  <h4 id="toggleAuth">Авторизация</h4>
+  <div id="authForm">
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Пароль" />
+    <button id="loginBtn">Войти</button>
+    <button id="logoutBtn" style="display:none;">Выйти</button>
+    <p id="authStatus"></p>
+  </div>
 </div>
 
 <div id="main">
@@ -120,6 +132,10 @@ const passwordInput = document.getElementById("password");
 const loginBtnEl = document.getElementById("loginBtn");
 const logoutBtnEl = document.getElementById("logoutBtn");
 const authStatus = document.getElementById("authStatus");
+const toggleAuth = document.getElementById("toggleAuth");
+const authForm = document.getElementById("authForm");
+
+toggleAuth.onclick = ()=>{ authForm.style.display = authForm.style.display==="none"?"block":"none"; }
 
 loginBtnEl.onclick = async () => {
   try { await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value); }
@@ -132,11 +148,14 @@ onAuthStateChanged(auth,user=>{
     authStatus.textContent="Вы вошли как "+user.email;
     loginBtnEl.style.display="none"; logoutBtnEl.style.display="inline-block";
     emailInput.style.display=passwordInput.style.display="none";
+    authForm.style.display="none"; // сворачиваем после входа
+    toggleAuth.textContent="Пользователь авторизован";
     enableEditing(true);
   } else {
     authStatus.textContent="Не авторизованы";
     loginBtnEl.style.display="inline-block"; logoutBtnEl.style.display="none";
     emailInput.style.display=passwordInput.style.display="inline-block";
+    toggleAuth.textContent="Авторизация";
     enableEditing(false);
   }
 });
@@ -178,7 +197,7 @@ async function updateHistory(){
     const div = document.createElement("div");
     div.className="history-item";
     div.innerHTML = `<div class="history-date">${date}</div>
-                     <div class="history-amount">${sign}${amount}</div>`;
+                     <div class="history-amount" style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
     historyList.appendChild(div);
   });
 }
