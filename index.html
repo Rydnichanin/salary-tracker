@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Зарплата</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body {
   font-family: 'Inter', sans-serif;
@@ -60,7 +59,10 @@ button:disabled { background:#bbb; cursor:not-allowed; }
 #manualAmount, #addBtn { margin-top:15px; font-size:1em; }
 #addBtn { display:flex; align-items:center; justify-content:center; gap:5px; }
 #addBtn span { font-weight:bold; font-size:1.1em; }
-#chartContainer { margin-top:30px; }
+#historyContainer { margin-top:30px; text-align:left; max-height:300px; overflow-y:auto; }
+.history-item { padding:8px; margin:4px 0; background:#ffffff; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); display:flex; justify-content:space-between; }
+.history-date { font-size:0.85em; color:#555; }
+.history-amount { font-weight:600; }
 </style>
 </head>
 <body>
@@ -79,8 +81,9 @@ button:disabled { background:#bbb; cursor:not-allowed; }
   <input type="number" id="manualAmount" placeholder="Введите сумму (плюс/минус)">
   <button id="addBtn"><span>💰</span> Добавить/Вычесть</button>
 
-  <div id="chartContainer">
-    <canvas id="balanceChart" height="200"></canvas>
+  <div id="historyContainer">
+    <h4>История изменений:</h4>
+    <div id="historyList">Нет записей</div>
   </div>
 </div>
 
@@ -107,6 +110,7 @@ const auth = getAuth(app);
 const balanceDisplay = document.getElementById("balanceDisplay");
 const manualAmount = document.getElementById("manualAmount");
 const addBtn = document.getElementById("addBtn");
+const historyList = document.getElementById("historyList");
 
 let rate = 15000;
 let holidays = ["2025-01-01","2025-03-08","2025-03-21","2025-03-22","2025-03-23","2025-05-01","2025-05-07","2025-05-09","2025-07-06","2025-08-30","2025-12-16","2025-12-17"];
@@ -147,30 +151,6 @@ const changesColRef = collection(db,"salaryData","changes","entries");
 
 let lastBalance = 161000;
 
-// --- Инициализация графика с пустыми данными ---
-const ctx = document.getElementById('balanceChart').getContext('2d');
-let chart = new Chart(ctx,{
-    type:'line',
-    data:{labels:[],datasets:[{label:'Изменения баланса',data:[],borderColor:'#1976d2',backgroundColor:'rgba(25,118,210,0.2)',fill:true,tension:0.3}]},
-    options:{responsive:true}
-});
-
-// --- Обновление графика ---
-async function updateChart(){
-    const q = query(changesColRef, orderBy("date"));
-    const snapshot = await getDocs(q);
-    const labels = [];
-    const data = [];
-    snapshot.forEach(doc=>{
-        let d = new Date(doc.data().date);
-        labels.push(d.toLocaleDateString());
-        data.push(doc.data().amount);
-    });
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = data;
-    chart.update();
-}
-
 // --- Анимация изменения баланса ---
 function animateBalanceChange(newBalance, prevBalance){
   let steps = 20;
@@ -184,6 +164,25 @@ function animateBalanceChange(newBalance, prevBalance){
   balanceDisplay.style.color = (newBalance-prevBalance>=0)?"#2e7d32":"#c62828";
 }
 
+// --- Обновление истории ---
+async function updateHistory(){
+  const q = query(changesColRef, orderBy("date","desc"));
+  const snapshot = await getDocs(q);
+  if(snapshot.empty){ historyList.innerHTML="Нет записей"; return; }
+  historyList.innerHTML = "";
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    const date = new Date(data.date).toLocaleString();
+    const amount = data.amount.toLocaleString('ru-RU');
+    const sign = data.amount>=0?"+":"-";
+    const div = document.createElement("div");
+    div.className="history-item";
+    div.innerHTML = `<div class="history-date">${date}</div>
+                     <div class="history-amount">${sign}${amount}</div>`;
+    historyList.appendChild(div);
+  });
+}
+
 // --- Подписка на баланс ---
 onSnapshot(balanceDocRef,(docSnap)=>{
   if(docSnap.exists()){
@@ -193,7 +192,7 @@ onSnapshot(balanceDocRef,(docSnap)=>{
   } else {
     setDoc(balanceDocRef,{balance:lastBalance});
   }
-  updateChart();
+  updateHistory();
 });
 
 // --- Добавление вручную ---
@@ -206,7 +205,7 @@ addBtn.onclick = async ()=>{
   await setDoc(balanceDocRef,{balance:currentBalance});
   await addDoc(changesColRef,{date:new Date().toISOString(),amount:value});
   manualAmount.value = "";
-  updateChart();
+  updateHistory();
 }
 
 // --- Ежедневное добавление ставки ---
@@ -230,7 +229,7 @@ async function addDailyRate(){
   currentBalance += todayRate;
   await setDoc(balanceDocRef,{balance:currentBalance});
   await addDoc(changesColRef,{date:new Date().toISOString(),amount:todayRate});
-  updateChart();
+  updateHistory();
 }
 
 scheduleDailyAddition();
