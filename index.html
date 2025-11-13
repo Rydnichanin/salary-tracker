@@ -142,7 +142,7 @@ const addBtn = document.getElementById("addBtn");
 const historyList = document.getElementById("historyList");
 
 let rate = 15000;
-let lastBalance = 161000;
+let lastBalance = 0; // временно, загрузим из Firestore
 let holidays = ["2025-01-01","2025-03-08","2025-03-21","2025-03-22","2025-03-23","2025-05-01","2025-05-07","2025-05-09","2025-07-06","2025-08-30","2025-12-16","2025-12-17"];
 
 const emailInput = document.getElementById("email");
@@ -237,17 +237,29 @@ async function updateHistory(){
   });
 }
 
-// --- Подписка на баланс ---
-onSnapshot(balanceDocRef,(docSnap)=>{
+// --- Инициализация баланса ---
+async function initBalance(){
+  const docSnap = await getDoc(balanceDocRef);
   if(docSnap.exists()){
-    let newBalance = docSnap.data().balance;
-    animateBalanceChange(newBalance,lastBalance, newBalance-lastBalance);
-    lastBalance = newBalance;
+    lastBalance = docSnap.data().balance;  // берем актуальный баланс из Firebase
+    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
   } else {
-    setDoc(balanceDocRef,{balance:lastBalance});
+    lastBalance = 161000;                 // начальная сумма
+    await setDoc(balanceDocRef,{balance:lastBalance});
+    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
   }
   updateHistory();
-});
+
+  // Подписка на изменения
+  onSnapshot(balanceDocRef,(docSnap)=>{
+    if(docSnap.exists()){
+      let newBalance = docSnap.data().balance;
+      animateBalanceChange(newBalance,lastBalance,newBalance-lastBalance);
+      lastBalance = newBalance;
+    }
+    updateHistory();
+  });
+}
 
 // --- Добавление вручную ---
 addBtn.onclick = async ()=>{
@@ -286,6 +298,7 @@ async function addDailyRate(){
   updateHistory();
 }
 
+initBalance();
 scheduleDailyAddition();
 </script>
 </body>
