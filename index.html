@@ -63,6 +63,7 @@ canvas { margin-top: 20px; max-width: 100%; }
   import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, getDocs, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
   // Firebase configuration
+  // TODO: Replace with your actual Firebase project configuration
   const firebaseConfig = {
     apiKey: "AIzaSyBXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXx",
     authDomain: "gold-11fa4.firebaseapp.com",
@@ -104,16 +105,25 @@ canvas { margin-top: 20px; max-width: 100%; }
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
-      // User is signed in
-      document.getElementById('signed-in').style.display = 'block';
-      document.getElementById('signed-out').style.display = 'none';
-      document.getElementById('app-content').style.display = 'block';
-      document.getElementById('user-name').textContent = user.displayName;
-      document.getElementById('user-photo').src = user.photoURL;
-      
-      // Load transactions from Firestore
-      await loadTransactionsFromFirestore();
-      updateDisplay();
+      try {
+        // User is signed in
+        document.getElementById('signed-in').style.display = 'block';
+        document.getElementById('signed-out').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        document.getElementById('user-name').textContent = user.displayName || 'User';
+        // Validate photoURL is HTTPS or use default
+        const photoURL = user.photoURL && user.photoURL.startsWith('https://') 
+          ? user.photoURL 
+          : 'https://via.placeholder.com/40';
+        document.getElementById('user-photo').src = photoURL;
+        
+        // Load transactions from Firestore
+        await loadTransactionsFromFirestore();
+        updateDisplay();
+      } catch (error) {
+        console.error('Error during sign-in setup:', error);
+        alert('Error loading user data: ' + error.message);
+      }
     } else {
       // User is signed out
       document.getElementById('signed-in').style.display = 'none';
