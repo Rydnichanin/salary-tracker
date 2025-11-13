@@ -49,7 +49,7 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
 </div>
 
 <script type="module">
-// Уведомления
+// Toast уведомления
 function showToast(text, timeout = 3500){
   let t = document.getElementById('__app_toast__');
   if(!t){ t = document.createElement('div'); t.id='__app_toast__';
@@ -66,16 +66,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/fireba
 import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, orderBy, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-// Твои реальные ключи Firebase
+// **Твои реальные ключи Firebase**
 const firebaseConfig = {
-  apiKey: "AIzaSyDNk1We9du5BJyrgGbQrkqd7tSDscneIOA",
-  authDomain: "gold-11fa4.firebaseapp.com",
-  databaseURL: "https://gold-11fa4-default-rtdb.firebaseio.com",
-  projectId: "gold-11fa4",
-  storageBucket: "gold-11fa4.appspot.com",
-  messagingSenderId: "226774330161",
-  appId: "1:226774330161:web:d1e1c93ade5dcea31d5e10",
-  measurementId: "G-7MLLBN1YZ4"
+  apiKey: "ТВОЙ_API_KEY",
+  authDomain: "ТВОЙ_AUTH_DOMAIN",
+  databaseURL: "ТВОЙ_DB_URL",
+  projectId: "ТВОЙ_PROJECT_ID",
+  storageBucket: "ТВОЙ_STORAGE_BUCKET",
+  messagingSenderId: "ТВОЙ_MESSAGING_ID",
+  appId: "ТВОЙ_APP_ID",
+  measurementId: "ТВОЙ_MEASUREMENT_ID"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -105,10 +105,7 @@ loginBtnEl.onclick = async ()=> { try{ await signInWithEmailAndPassword(auth,ema
 logoutBtnEl.onclick = async ()=> { try{ await signOut(auth); showToast('Вы вышли'); } catch(e){ showToast(e.message); } };
 function enableEditing(enabled){ manualAmount.disabled = !enabled; addBtn.disabled = !enabled; }
 
-// Обновление баланса на экране
-function animateBalanceChange(newBalance){ balanceDisplay.textContent = Math.round(newBalance).toLocaleString('ru-RU'); }
-
-// История изменений
+// История
 async function updateHistory(){
   try{
     const q = query(entriesColRef, orderBy("date","desc"));
@@ -126,6 +123,9 @@ async function updateHistory(){
     });
   } catch(e){ console.warn(e); }
 }
+
+// Баланс на экране
+function animateBalanceChange(newBalance){ balanceDisplay.textContent = Math.round(newBalance).toLocaleString('ru-RU'); }
 
 // Начисление за пропущенные дни
 async function addDailyRate(){
@@ -148,7 +148,7 @@ async function addDailyRate(){
   } catch(e){ console.warn(e); }
 }
 
-// Ручное добавление
+// Ручное изменение
 addBtn.onclick = async ()=>{
   let val = parseFloat(manualAmount.value);
   if(isNaN(val)){ showToast("Введите число!"); return; }
