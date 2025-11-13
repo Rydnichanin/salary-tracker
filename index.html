@@ -5,76 +5,18 @@
 <title>Зарплата</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-body {
-  font-family: 'Inter', sans-serif;
-  margin: 0;
-  padding: 0;
-  background: #f0f4f8;
-  min-height: 100vh;
-}
-#sidebar {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 220px;
-  background: #ffffff;
-  padding: 15px 20px;
-  border-radius: 15px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-  transition: all 0.4s;
-  overflow: hidden;
-}
-#sidebar h4 {
-  margin:0;
-  color:#00796b;
-  cursor: pointer;
-  user-select: none;
-}
-#authForm {
-  margin-top: 10px;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 0.4s ease, opacity 0.4s ease;
-  overflow: hidden;
-}
-#authForm.show {
-  max-height: 200px;
-  opacity: 1;
-}
-input, button {
-  padding:8px;
-  margin:6px 0;
-  width:100%;
-  box-sizing:border-box;
-  border-radius:8px;
-  border:1px solid #ccc;
-  font-size:0.95em;
-}
-button {
-  background:#00796b;
-  color:#fff;
-  border:none;
-  cursor:pointer;
-  transition:0.2s;
-}
+body { font-family: 'Inter', sans-serif; margin:0; padding:0; background:#f0f4f8; min-height:100vh; }
+#sidebar { position:fixed; top:20px; right:20px; width:220px; background:#ffffff; padding:15px 20px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.15); transition:all 0.4s; overflow:hidden; }
+#sidebar h4 { margin:0; color:#00796b; cursor:pointer; user-select:none; }
+#authForm { margin-top:10px; max-height:0; opacity:0; transition:max-height 0.4s ease, opacity 0.4s ease; overflow:hidden; }
+#authForm.show { max-height:200px; opacity:1; }
+input, button { padding:8px; margin:6px 0; width:100%; box-sizing:border-box; border-radius:8px; border:1px solid #ccc; font-size:0.95em; }
+button { background:#00796b; color:#fff; border:none; cursor:pointer; transition:0.2s; }
 button:hover { background:#004d40; }
 button:disabled { background:#bbb; cursor:not-allowed; }
 #authStatus { font-size:0.85em; color:#555; margin-top:5px;}
-#main {
-  max-width: 600px;
-  margin: 80px auto;
-  text-align: center;
-  padding: 30px;
-  background: #e3f2fd;
-  border-radius: 20px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-  color: #004d40;
-  position: relative;
-}
-#balanceDisplay {
-  font-size:2.5em;
-  margin-bottom:15px;
-}
+#main { max-width:600px; margin:80px auto; text-align:center; padding:30px; background:#e3f2fd; border-radius:20px; box-shadow:0 8px 25px rgba(0,0,0,0.15); color:#004d40; position:relative; }
+#balanceDisplay { font-size:2.5em; margin-bottom:15px; }
 #manualAmount, #addBtn { margin-top:15px; font-size:1em; }
 #addBtn { display:flex; align-items:center; justify-content:center; gap:5px; }
 #addBtn span { font-weight:bold; font-size:1.1em; }
@@ -82,14 +24,7 @@ button:disabled { background:#bbb; cursor:not-allowed; }
 .history-item { padding:8px; margin:4px 0; background:#ffffff; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); display:flex; justify-content:space-between; }
 .history-date { font-size:0.85em; color:#555; }
 .history-amount { font-weight:600; }
-#balanceChangeAnim {
-  position: absolute;
-  font-weight: bold;
-  font-size: 1.2em;
-  pointer-events: none;
-  transition: all 1s ease-out;
-  opacity: 1;
-}
+#balanceChangeAnim { position:absolute; font-weight:bold; font-size:1.2em; pointer-events:none; transition: all 1s ease-out; opacity:1; }
 </style>
 </head>
 <body>
@@ -142,7 +77,7 @@ const addBtn = document.getElementById("addBtn");
 const historyList = document.getElementById("historyList");
 
 let rate = 15000;
-let lastBalance = 0; // временно, загрузим из Firestore
+let lastBalance = 0; 
 let holidays = ["2025-01-01","2025-03-08","2025-03-21","2025-03-22","2025-03-23","2025-05-01","2025-05-07","2025-05-09","2025-07-06","2025-08-30","2025-12-16","2025-12-17"];
 
 const emailInput = document.getElementById("email");
@@ -153,16 +88,10 @@ const authStatus = document.getElementById("authStatus");
 const toggleAuth = document.getElementById("toggleAuth");
 const authForm = document.getElementById("authForm");
 
-// --- Плавное сворачивание/разворачивание ---
-toggleAuth.onclick = ()=>{
-  authForm.classList.toggle("show");
-}
+// Сворачивание/разворачивание формы
+toggleAuth.onclick = ()=>{ authForm.classList.toggle("show"); }
 
-// --- Вход и выход ---
-loginBtnEl.onclick = async () => {
-  try { await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value); }
-  catch(e){ alert("Ошибка: "+e.message);}
-};
+loginBtnEl.onclick = async () => { try { await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value);} catch(e){ alert("Ошибка: "+e.message);} };
 logoutBtnEl.onclick = async()=>{await signOut(auth);}
 
 onAuthStateChanged(auth,user=>{
@@ -241,16 +170,14 @@ async function updateHistory(){
 async function initBalance(){
   const docSnap = await getDoc(balanceDocRef);
   if(docSnap.exists()){
-    lastBalance = docSnap.data().balance;  // берем актуальный баланс из Firebase
-    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
+    lastBalance = docSnap.data().balance;
   } else {
-    lastBalance = 161000;                 // начальная сумма
+    lastBalance = 161000;
     await setDoc(balanceDocRef,{balance:lastBalance});
-    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
   }
+  balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
   updateHistory();
 
-  // Подписка на изменения
   onSnapshot(balanceDocRef,(docSnap)=>{
     if(docSnap.exists()){
       let newBalance = docSnap.data().balance;
@@ -261,7 +188,7 @@ async function initBalance(){
   });
 }
 
-// --- Добавление вручную ---
+// --- Ручное добавление ---
 addBtn.onclick = async ()=>{
   let value = parseFloat(manualAmount.value);
   if(isNaN(value)) return alert("Введите число!");
