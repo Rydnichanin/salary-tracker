@@ -105,8 +105,10 @@ loginBtnEl.onclick = async ()=> { try{ await signInWithEmailAndPassword(auth,ema
 logoutBtnEl.onclick = async ()=> { try{ await signOut(auth); showToast('Вы вышли'); } catch(e){ showToast(e.message); } };
 function enableEditing(enabled){ manualAmount.disabled = !enabled; addBtn.disabled = !enabled; }
 
+// Обновление баланса на экране
 function animateBalanceChange(newBalance){ balanceDisplay.textContent = Math.round(newBalance).toLocaleString('ru-RU'); }
 
+// История изменений
 async function updateHistory(){
   try{
     const q = query(entriesColRef, orderBy("date","desc"));
@@ -150,13 +152,29 @@ async function addDailyRate(){
 addBtn.onclick = async ()=>{
   let val = parseFloat(manualAmount.value);
   if(isNaN(val)){ showToast("Введите число!"); return; }
-  const newBalance = lastBalance + val;
-  await setDoc(balanceDocRef,{ balance:newBalance, lastAddedDate:new Date() },{ merge:true });
-  await addDoc(entriesColRef,{ date: serverTimestamp(), amount: val });
-  lastBalance = newBalance;
-  animateBalanceChange(newBalance);
-  manualAmount.value="";
-  updateHistory();
+
+  if(!auth.currentUser){
+    showToast("Нужно войти, чтобы сохранить изменения");
+    authForm.classList.add('show');
+    return;
+  }
+
+  addBtn.disabled = true;
+  try{
+    const newBalance = lastBalance + val;
+    await setDoc(balanceDocRef,{ balance:newBalance, lastAddedDate:new Date() },{ merge:true });
+    await addDoc(entriesColRef,{ date: serverTimestamp(), amount: val });
+    lastBalance = newBalance;
+    animateBalanceChange(newBalance);
+    manualAmount.value="";
+    updateHistory();
+    showToast("Изменение сохранено");
+  } catch(e){ 
+    console.error(e); 
+    showToast("Ошибка при сохранении");
+  } finally { 
+    addBtn.disabled = false; 
+  }
 };
 
 // Авторизация
@@ -185,7 +203,7 @@ document.addEventListener('click',(e)=>{
   if(!sidebar.contains(e.target)) authForm.classList.remove('show');
 });
 
-// Запуск
+// Инициализация
 addDailyRate();
 </script>
 </body>
