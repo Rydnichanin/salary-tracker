@@ -21,7 +21,8 @@ body {
   padding: 15px 20px;
   border-radius: 15px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-  transition: all 0.3s;
+  transition: all 0.4s;
+  overflow: hidden;
 }
 #sidebar h4 {
   margin:0;
@@ -31,7 +32,14 @@ body {
 }
 #authForm {
   margin-top: 10px;
-  display: none;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.4s ease;
+  overflow: hidden;
+}
+#authForm.show {
+  max-height: 200px;
+  opacity: 1;
 }
 input, button {
   padding:8px;
@@ -135,8 +143,12 @@ const authStatus = document.getElementById("authStatus");
 const toggleAuth = document.getElementById("toggleAuth");
 const authForm = document.getElementById("authForm");
 
-toggleAuth.onclick = ()=>{ authForm.style.display = authForm.style.display==="none"?"block":"none"; }
+// --- Плавное сворачивание/разворачивание ---
+toggleAuth.onclick = ()=>{
+  authForm.classList.toggle("show");
+}
 
+// --- Вход и выход ---
 loginBtnEl.onclick = async () => {
   try { await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value); }
   catch(e){ alert("Ошибка: "+e.message);}
@@ -148,7 +160,7 @@ onAuthStateChanged(auth,user=>{
     authStatus.textContent="Вы вошли как "+user.email;
     loginBtnEl.style.display="none"; logoutBtnEl.style.display="inline-block";
     emailInput.style.display=passwordInput.style.display="none";
-    authForm.style.display="none"; // сворачиваем после входа
+    authForm.classList.remove("show"); // сворачиваем после входа
     toggleAuth.textContent="Пользователь авторизован";
     enableEditing(true);
   } else {
