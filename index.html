@@ -31,15 +31,21 @@ export default function SalaryTracker() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // ---- Авторизация ----
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         const docRef = doc(db, "users", currentUser.uid);
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
+
+        if (!docSnap.exists()) {
+          await setDoc(docRef, { salary: 161000 });
+          setSalary(161000);
+        } else {
           setSalary(docSnap.data().salary || 0);
         }
+
         const q = query(
           collection(db, "users", currentUser.uid, "history"),
           orderBy("timestamp", "desc")
@@ -52,6 +58,7 @@ export default function SalaryTracker() {
     return () => unsubscribe();
   }, []);
 
+  // ---- Изменение баланса ----
   const handleUpdate = async (type) => {
     if (!user) return;
     setLoading(true);
@@ -81,6 +88,7 @@ export default function SalaryTracker() {
     }
   };
 
+  // ---- Авторизация ----
   const handleAuth = async () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -95,101 +103,90 @@ export default function SalaryTracker() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-white flex flex-col items-center p-4 relative overflow-hidden">
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-900 to-black opacity-60"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      />
-
-      <motion.h1
-        className="text-3xl font-bold mb-6 z-10"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        Учёт зарплаты
-      </motion.h1>
-
+    <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 text-white p-4 relative">
       {user ? (
-        <motion.div
-          className="z-10 flex flex-col items-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <Card className="bg-neutral-800 text-white p-6 rounded-2xl shadow-xl">
-            <CardContent className="flex flex-col items-center space-y-4">
-              <h2 className="text-2xl font-semibold">
-                Баланс: {salary.toFixed(2)} ₸
+        <>
+          <Card className="bg-neutral-800 shadow-lg w-full max-w-md text-center rounded-2xl">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold mb-2">
+                {salary.toFixed(2)} ₸
               </h2>
-              <Input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Введите сумму"
-                className="bg-neutral-700 border-none text-white w-52 text-center"
-              />
-              <div className="flex space-x-2">
+              <div className="flex gap-2 justify-center mb-3">
+                <Input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Сумма"
+                  className="bg-neutral-700 border-none text-white w-32 text-center"
+                />
                 <Button
-                  disabled={loading}
                   onClick={() => handleUpdate("add")}
-                  className="bg-green-600 hover:bg-green-700"
+                  disabled={loading}
+                  className="bg-green-600 hover:bg-green-700 px-3"
                 >
                   +
                 </Button>
                 <Button
-                  disabled={loading}
                   onClick={() => handleUpdate("subtract")}
-                  className="bg-red-600 hover:bg-red-700"
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700 px-3"
                 >
-                  -
+                  −
                 </Button>
               </div>
-              <Button onClick={handleLogout} className="bg-gray-600 hover:bg-gray-700">
+
+              <Button
+                onClick={handleLogout}
+                className="bg-gray-700 hover:bg-gray-800 text-sm"
+              >
                 Выйти
               </Button>
             </CardContent>
           </Card>
 
-          <div className="mt-6 w-80 max-h-64 overflow-y-auto bg-neutral-800 rounded-xl p-4 shadow-md">
-            <h3 className="text-lg mb-2">История</h3>
-            {history.map((item, i) => (
-              <div
-                key={i}
-                className="flex justify-between border-b border-gray-700 py-1 text-sm"
-              >
-                <span>
-                  {item.type === "add" ? "➕" : "➖"} {item.value} ₸
-                </span>
-                <span>{new Date(item.timestamp.seconds * 1000).toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+          <Card className="bg-neutral-900 mt-4 w-full max-w-md rounded-2xl">
+            <CardContent className="p-4 max-h-64 overflow-y-auto text-sm">
+              <h3 className="text-gray-400 mb-2">История</h3>
+              {history.map((item, i) => (
+                <div key={i} className="mb-1 flex justify-between">
+                  <span>
+                    {item.type === "add" ? "➕" : "➖"} {item.value} ₸
+                  </span>
+                  <span className="text-gray-500 text-xs">
+                    {new Date(
+                      item.timestamp.seconds * 1000
+                    ).toLocaleString("ru-RU")}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <>
           {showAuth ? (
             <motion.div
-              className="fixed bottom-4 right-4 bg-neutral-800 p-4 rounded-xl shadow-lg z-50"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="fixed top-4 right-4 bg-neutral-900 p-4 rounded-xl shadow-lg z-50 w-64"
             >
               <Input
                 type="email"
-                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mb-2 bg-neutral-700 border-none text-white"
+                placeholder="Email"
+                className="mb-2 bg-neutral-800 border-none text-white"
               />
               <Input
                 type="password"
-                placeholder="Пароль"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mb-2 bg-neutral-700 border-none text-white"
+                placeholder="Пароль"
+                className="mb-2 bg-neutral-800 border-none text-white"
               />
               <Button
                 onClick={handleAuth}
-                className="bg-blue-600 hover:bg-blue-700 w-full"
+                className="w-full bg-blue-700 hover:bg-blue-800"
               >
                 Войти
               </Button>
