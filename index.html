@@ -55,7 +55,6 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
 </div>
 
 <script type="module">
-// Уведомления
 function showToast(text, timeout = 3500){
   let t = document.getElementById('__app_toast__');
   if(!t){
@@ -74,12 +73,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/fireba
 import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, orderBy, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-// Настройка Firebase
+// Твои реальные ключи
 const firebaseConfig = {
-  apiKey: "ТВОЙ_API_KEY",
+  apiKey: "AIzaSyDNk1We9du5BJyrgGbQrkqd7tSDscneIOA",
   authDomain: "gold-11fa4.firebaseapp.com",
+  databaseURL: "https://gold-11fa4-default-rtdb.firebaseio.com",
   projectId: "gold-11fa4",
-  storageBucket: "gold-11fa4.appspot.com",
+  storageBucket: "gold-11fa4.firebasestorage.app",
   messagingSenderId: "226774330161",
   appId: "1:226774330161:web:d1e1c93ade5dcea31d5e10",
   measurementId: "G-7MLLBN1YZ4"
@@ -105,22 +105,12 @@ const authForm = document.getElementById("authForm");
 let rate = 15000;
 let lastBalance = 176000;
 
+// Firestore refs
 const balanceDocRef = doc(db,"salaryData","balance");
 const entriesColRef = collection(balanceDocRef, "entries");
 
-// UI
-toggleAuth.onclick = ()=> authForm.classList.toggle("show");
-loginBtnEl.onclick = async ()=> {
-  try { await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value); showToast('Вход выполнен'); }
-  catch(e){ console.error(e); showToast('Ошибка входа: ' + (e.message || e)); }
-};
-logoutBtnEl.onclick = async ()=> {
-  try { await signOut(auth); showToast('Вы вышли'); }
-  catch(e){ console.error(e); showToast('Ошибка выхода'); }
-};
+// UI helpers
 function enableEditing(enabled){ manualAmount.disabled = !enabled; addBtn.disabled = !enabled; }
-
-// Анимация баланса
 function animateBalanceChange(newBalance, prevBalance, changeAmount = 0){
   const from = Number(prevBalance)||0; const to = Number(newBalance)||0;
   balanceDisplay.style.color = (to - from >= 0) ? "#2e7d32" : "#c62828";
@@ -141,95 +131,56 @@ async function updateHistory(){
     historyList.innerHTML = "";
     snap.forEach(d=>{
       const data = d.data();
-      let dateStr = "—";
-      if(data.date && typeof data.date.toDate === "function") dateStr = data.date.toDate().toLocaleString();
-      else if(data.date) dateStr = new Date(data.date).toLocaleString();
-      const amount = (typeof data.amount === "number")? data.amount.toLocaleString('ru-RU'): String(data.amount);
+      let dateStr = data.date && typeof data.date.toDate==="function"? data.date.toDate().toLocaleString(): new Date(data.date).toLocaleString();
+      const amount = (typeof data.amount==="number")? data.amount.toLocaleString('ru-RU'): String(data.amount);
       const sign = (data.amount >= 0) ? "+" : "-";
       const div = document.createElement("div"); div.className = "history-item";
-      div.innerHTML = `<div class="history-date">${dateStr}</div><div class="history-amount" style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
+      div.innerHTML = `<div class="history-date">${dateStr}</div><div style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
       historyList.appendChild(div);
     });
   }catch(e){ console.warn(e); historyList.innerHTML="Нет записей"; }
 }
 
-// Изменение баланса вручную
+// Изменение баланса
 async function commitBalanceChange(amount){
-  const balSnap = await getDoc(balanceDocRef);
-  let current = balSnap.exists() && typeof balSnap.data().balance==="number" ? balSnap.data().balance : lastBalance;
-  const newBalance = current + Number(amount);
-  const batch = writeBatch(db);
-  batch.set(balanceDocRef, { balance: newBalance }, { merge:true });
-  const newEntryRef = doc(entriesColRef);
-  batch.set(newEntryRef, { date: serverTimestamp(), amount: Number(amount) });
-  await batch.commit();
+  if(!auth.currentUser){ showToast('Нужно войти, чтобы сохранить изменения'); return lastBalance+amount; }
+  let newBalance = lastBalance + Number(amount);
+  try{
+    const batch = writeBatch(db);
+    batch.set(balanceDocRef,{ balance:newBalance },{ merge:true });
+    const newEntryRef = doc(entriesColRef);
+    batch.set(newEntryRef,{ date:serverTimestamp(), amount:Number(amount) });
+    await batch.commit();
+  }catch(e){ console.error(e); showToast('Ошибка при сохранении'); }
   return newBalance;
 }
 
+// Кнопка добавления/вычитания
 addBtn.onclick = async ()=>{
   let value = parseFloat(manualAmount.value);
   if(isNaN(value)){ showToast('Введите число!'); return; }
   addBtn.disabled = true;
-  try{
-    const newBalance = await commitBalanceChange(value);
-    animateBalanceChange(newBalance,lastBalance,value);
-    lastBalance = newBalance;
-    manualAmount.value = "";
-    await updateHistory();
-    showToast('Изменение сохранено');
-  }catch(e){ console.error(e); showToast('Ошибка'); } finally { addBtn.disabled=false; }
+  const newBalance = await commitBalanceChange(value);
+  animateBalanceChange(newBalance,lastBalance,value);
+  lastBalance = newBalance;
+  manualAmount.value="";
+  updateHistory();
+  addBtn.disabled = false;
 };
 
-// Ежедневное начисление
-async function addDailyRate(days=1){
-  const amount = rate * days;
-  const newBalance = await commitBalanceChange(amount);
-  animateBalanceChange(newBalance,lastBalance,amount);
-  lastBalance = newBalance;
-  updateHistory();
-}
-
-// Проверка даты и начисление при пропусках
-(function setupDailyChecker(){
-  const KEY='last_daily_date';
-  const todayStr = new Date().toISOString().split("T")[0];
-  let lastDate = localStorage.getItem(KEY) || todayStr;
-  let diff = Math.floor((new Date(todayStr)-new Date(lastDate))/(1000*60*60*24));
-  if(diff>0){ addDailyRate(diff); localStorage.setItem(KEY,todayStr); }
-
-  setInterval(()=>{
-    const nowStr = new Date().toISOString().split("T")[0];
-    const stored = localStorage.getItem(KEY) || nowStr;
-    if(stored!==nowStr){
-      addDailyRate(1);
-      localStorage.setItem(KEY,nowStr);
-    }
-  },60*1000);
-})();
-
-// Скрытие формы при клике вне
-document.addEventListener('click',(e)=>{
-  if(!document.getElementById('sidebar').contains(e.target)){
-    authForm.classList.remove('show');
-  }
-});
-
-// Инициализация
-async function initBalance(){
-  try{
-    const snap = await getDoc(balanceDocRef);
-    if(snap.exists() && typeof snap.data().balance==="number"){
-      lastBalance = snap.data().balance;
-    }
-    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
-    updateHistory();
-  }catch(e){ console.warn(e); balanceDisplay.textContent=lastBalance.toLocaleString('ru-RU'); }
-}
-
 // Авторизация
-onAuthStateChanged(auth,user=>{
+toggleAuth.onclick = ()=> authForm.classList.toggle("show");
+loginBtnEl.onclick = async ()=> {
+  try{ await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value); showToast('Вход выполнен'); }
+  catch(e){ console.error(e); showToast('Ошибка входа: ' + (e.message || e)); }
+};
+logoutBtnEl.onclick = async ()=> {
+  try{ await signOut(auth); showToast('Вы вышли'); }
+  catch(e){ console.error(e); showToast('Ошибка выхода'); }
+};
+function updateAuthUI(user){
   if(user){
-    authStatus.textContent="Вы вошли как "+user.email;
+    authStatus.textContent = "Вы вошли как " + user.email;
     loginBtnEl.style.display="none"; logoutBtnEl.style.display="inline-block";
     emailInput.style.display=passwordInput.style.display="none";
     toggleAuth.textContent="Пользователь авторизован";
@@ -241,9 +192,44 @@ onAuthStateChanged(auth,user=>{
     toggleAuth.textContent="Авторизация";
     enableEditing(false);
   }
-});
+}
+onAuthStateChanged(auth, updateAuthUI);
 
+// Инициализация баланса
+async function initBalance(){
+  const snap = await getDoc(balanceDocRef);
+  if(snap.exists() && typeof snap.data().balance==="number") lastBalance=snap.data().balance;
+  else await setDoc(balanceDocRef,{ balance:lastBalance },{ merge:true });
+  balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
+  updateHistory();
+}
 initBalance();
+
+// Начисление ежедневно
+async function addDailyRate(days=1){
+  const amount = rate*days;
+  const newBalance = await commitBalanceChange(amount);
+  animateBalanceChange(newBalance,lastBalance,amount);
+  lastBalance=newBalance;
+  updateHistory();
+}
+(function setupDailyChecker(){
+  const KEY='last_daily_date';
+  const todayStr=new Date().toISOString().split("T")[0];
+  let lastDate = localStorage.getItem(KEY) || todayStr;
+  let diff = Math.floor((new Date(todayStr)-new Date(lastDate))/(1000*60*60*24));
+  if(diff>1) addDailyRate(diff-1); // начисляем за пропущенные дни
+  localStorage.setItem(KEY,todayStr);
+  setInterval(async ()=>{
+    const nowStr = new Date().toISOString().split("T")[0];
+    const stored = localStorage.getItem(KEY) || nowStr;
+    if(stored!==nowStr){ await addDailyRate(1); localStorage.setItem(KEY,nowStr); }
+  },60*1000);
+})();
+
+document.addEventListener('click', (e)=>{
+  if(!document.getElementById('sidebar').contains(e.target)) authForm.classList.remove('show');
+});
 </script>
 </body>
 </html>
