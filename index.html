@@ -53,7 +53,15 @@ import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, orderBy, 
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 // Firebase config
-const firebaseConfig = { /* твой firebaseConfig */ };
+const firebaseConfig = { 
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -72,6 +80,7 @@ const authForm = document.getElementById("authForm");
 
 const SALARY_PER_DAY = 15000;
 let lastBalance = 176000;
+
 const balanceDocRef = doc(db,"salaryData","balance");
 const entriesColRef = collection(balanceDocRef,"entries");
 
@@ -83,38 +92,6 @@ function enableEditing(enabled){ manualAmount.disabled = !enabled; addBtn.disabl
 
 function animateBalanceChange(newBalance){
   balanceDisplay.textContent = Math.round(newBalance).toLocaleString('ru-RU');
-}
-
-// Проверяем и начисляем за пропущенные дни
-async function updateDailyBalance(){
-  const snap = await getDoc(balanceDocRef);
-  let balance = 176000;
-  let lastAddedDate = null;
-
-  if(snap.exists){
-    const data = snap.data();
-    balance = data.balance ?? 176000;
-    lastAddedDate = data.lastAddedDate?.toDate() ?? null;
-  }
-
-  const today = new Date();
-  let daysToAdd = 0;
-
-  if(lastAddedDate){
-    const diffTime = today - lastAddedDate;
-    daysToAdd = Math.floor(diffTime / (1000*60*60*24));
-  } else { daysToAdd = 1; }
-
-  if(daysToAdd>0){
-    const added = daysToAdd * SALARY_PER_DAY;
-    balance += added;
-    await setDoc(balanceDocRef,{ balance, lastAddedDate: new Date() }, { merge:true });
-    await addDoc(entriesColRef,{ date: serverTimestamp(), amount: added });
-  }
-
-  lastBalance = balance;
-  animateBalanceChange(balance);
-  updateHistory();
 }
 
 // История изменений
@@ -134,6 +111,65 @@ async function updateHistory(){
       historyList.appendChild(div);
     });
   }catch(e){ console.error(e); }
+}
+
+// Начисление за пропущенные дни
+async function updateDailyBalance(){
+  try{
+    const snap = await getDoc(balanceDocRef);
+    let balance = 176000;
+    let lastAddedDate = null;
+
+    if(snap.exists){
+      const data = snap.data();
+      balance = data.balance ?? 176000;
+      lastAddedDate = data.lastAddedDate?.toDate ?? new Date();
+    }
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    let daysToAdd = 0;
+
+    if(lastAddedDate){
+      lastAddedDate.setHours(0,0,0,0);
+      const diffTime = today - lastAddedDate;
+      daysToAdd = Math.floor(diffTime / (1000*60*60*24));
+    } else { daysToAdd = 1; }
+
+    if(daysToAdd > 0){
+      const addedAmount = daysToAdd * SALARY_PER_DAY;
+      balance += addedAmount;
+      await setDoc(balanceDocRef,{ balance, lastAddedDate: today }, { merge:true });
+      await addDoc(entriesColRef,{ date: serverTimestamp(), amount: addedAmount });
+    }
+
+    lastBalance = balance;
+    animateBalanceChange(balance);
+    updateHistory();
+  } catch(e){ console.error(e); }
+}
+
+// Инициализация баланса при загрузке
+async function initBalance(){
+  try {
+    const snap = await getDoc(balanceDocRef);
+    if(snap.exists){
+      const data = snap.data();
+      lastBalance = data.balance ?? 176000;
+      await updateDailyBalance();
+    } else {
+      lastBalance = 176000;
+      await setDoc(balanceDocRef,{
+        balance: lastBalance,
+        lastAddedDate: new Date()
+      });
+    }
+    animateBalanceChange(lastBalance);
+    updateHistory();
+  } catch(e){
+    console.error("Ошибка инициализации баланса:", e);
+    lastBalance = 176000;
+    animateBalanceChange(lastBalance);
+  }
 }
 
 // Добавление вручную
@@ -176,7 +212,7 @@ document.addEventListener('click',(e)=>{
 });
 
 // Запуск
-updateDailyBalance();
+initBalance();
 </script>
 </body>
 </html>
