@@ -8,9 +8,9 @@
 <style>
 :root{ --accent:#00796b; --accent-dark:#004d40; --card-bg: rgba(255,255,255,0.78); --card-shadow: 0 12px 30px rgba(6,22,37,0.12); }
 html,body{ height:100%; }
-body{ font-family:'Inter',sans-serif; margin:0; padding:0; min-height:100vh; position:relative; overflow-x:hidden; background:linear-gradient(120deg,#f0fbff 0%,#f6fff7 40%,#fffaf0 100%); color:#04363a; }
+body{ font-family:'Inter',sans-serif; margin:0; padding:0; min-height:100vh; position:relative; overflow-x:hidden; background:linear-gradient(120deg,#f0fbff 0%,#f6fff7 40%,#fffaf0 100%); color:#04363a[...]
 #main{ max-width:640px; margin:80px auto; text-align:center; padding:34px; background:var(--card-bg); border-radius:20px; box-shadow:var(--card-shadow); z-index:1; }
-#sidebar{ position:fixed; top:20px; right:20px; width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70)); padding:16px 22px; border-radius:14px; box-shadow:0 12px 30px rgba(6,22,37,0.08); z-index:2; }
+#sidebar{ position:fixed; top:20px; right:20px; width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70)); padding:16px 22px; border-radius:14px; box-shadow:0 12p[...]
 #sidebar h4{ margin:0; color:var(--accent); cursor:pointer; user-select:none; }
 #authForm{ margin-top:10px; max-height:0; opacity:0; transition:max-height 0.28s ease, opacity 0.28s ease; overflow:hidden; }
 #authForm.show{ max-height:220px; opacity:1; }
@@ -23,7 +23,7 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
 #manualAmount,#addBtn{ margin-top:14px; font-size:1em; }
 #addBtn{ display:flex; align-items:center; justify-content:center; gap:8px; }
 #historyContainer{ margin-top:34px; text-align:left; max-height:340px; overflow-y:auto; }
-.history-item{ padding:10px; margin:6px 0; background:rgba(255,255,255,0.85); border-radius:10px; box-shadow:0 4px 10px rgba(6,22,37,0.06); display:flex; justify-content:space-between; align-items:center; }
+.history-item{ padding:10px; margin:6px 0; background:rgba(255,255,255,0.85); border-radius:10px; box-shadow:0 4px 10px rgba(6,22,37,0.06); display:flex; justify-content:space-between; align-items:cen[...]
 @media (max-width:700px){ #main{ margin:60px 18px; padding:22px; } #sidebar{ width:calc(100% - 40px); right:20px; left:20px; top:auto; bottom:20px; } }
 </style>
 </head>
@@ -57,7 +57,7 @@ function showToast(text, timeout = 3500){
   let t = document.getElementById('__app_toast__');
   if(!t){
     t = document.createElement('div'); t.id='__app_toast__';
-    Object.assign(t.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',background:'rgba(6,22,37,0.9)',color:'#fff',padding:'10px 16px',borderRadius:'10px',zIndex:99999,fontFamily:'Inter, sans-serif',fontSize:'14px'});
+    Object.assign(t.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',background:'rgba(6,22,37,0.9)',color:'#fff',padding:'10px 16px',borderRadius:'10px',zIndex:99999,fontF[...]
     document.body.appendChild(t);
   }
   t.textContent = text;
@@ -105,10 +105,23 @@ const authForm = document.getElementById("authForm");
 
 // Settings
 const DAILY_RATE = 15000;
-let lastBalance = 176000; // стартовая сумма
+const START_BALANCE_DEFAULT = 176000;
+const START_BALANCE_8TH = 101000; // новая стартовая сумма для 8-го числа месяца
+
+// вычисляем стартовую сумму: если сегодня 8-е число месяца — ставим 101000, иначе стандарт
+function getInitialLastBalance(){
+  try{
+    const d = new Date();
+    return d.getDate() === 8 ? START_BALANCE_8TH : START_BALANCE_DEFAULT;
+  }catch(e){
+    return START_BALANCE_DEFAULT;
+  }
+}
+
+let lastBalance = getInitialLastBalance(); // стартовая сумма (учитывает 8-е число текущего месяца)
 let holidays = []; // при необходимости добавьте даты YYYY-MM-DD
 
-// privilege flag for manual edits
+// privilege flag for automated behavior (keeps original meaning)
 let currentUserIsAutomated = false;
 
 const balanceDocRef = doc(db,"salaryData","balance");
@@ -162,7 +175,8 @@ async function updateHistory(){
   }catch(e){ console.warn(e); historyList.innerHTML="Нет записей"; }
 }
 
-// commitBalanceChange: options.forceAutomatic = true allows automatic writes (daily), manual writes require automated users
+// commitBalanceChange: options.forceAutomatic = true allows automatic writes (daily).
+// Раньше вручную можно было писать только при automated-пользователе — теперь разрешаем ручные изменения любому авторизованному пользователю.
 async function commitBalanceChange(amount, options = { forceAutomatic: false }){
   const result = { newBalance:null, balanceWritten:false, entryWritten:false, error:null };
 
@@ -172,12 +186,7 @@ async function commitBalanceChange(amount, options = { forceAutomatic: false }){
     return result;
   }
 
-  if(!options.forceAutomatic && !currentUserIsAutomated){
-    result.newBalance = (Number(lastBalance)||0) + Number(amount);
-    result.error = new Error('not-authorized-for-manual-change');
-    return result;
-  }
-
+  // NB: removed strict block on non-automated users so that any authenticated user can make manual changes.
   try{
     const balSnap = await getDoc(balanceDocRef);
     let current = balSnap && balSnap.exists() && typeof balSnap.data().balance === 'number' ? balSnap.data().balance : (Number(lastBalance)||0);
@@ -187,24 +196,26 @@ async function commitBalanceChange(amount, options = { forceAutomatic: false }){
       const batch = writeBatch(db);
       batch.set(balanceDocRef, { balance: newBalance }, { merge: true });
       const newEntryRef = doc(entriesColRef);
-      batch.set(newEntryRef, { serverCreatedAt: serverTimestamp(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount) });
+      // помечаем источник записи: automatic (для ежедневного), manual (для ручного)
+      const source = options && options.forceAutomatic ? 'automatic' : 'manual';
+      batch.set(newEntryRef, { serverCreatedAt: serverTimestamp(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount), source, userId: auth.currentUser ? auth.currentUser.uid : null });
       await batch.commit();
       result.newBalance = newBalance; result.balanceWritten = true; result.entryWritten = true; return result;
     }catch(batchErr){
       console.warn('Batch failed, fallback:', batchErr);
       try{ await setDoc(balanceDocRef, { balance: newBalance }, { merge: true }); result.balanceWritten=true; }catch(e){ result.error=e; }
-      try{ await addDoc(entriesColRef,{ serverCreatedAt: new Date().toISOString(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount) }); result.entryWritten=true; }catch(e){ result.error = result.error || e; }
+      try{ await addDoc(entriesColRef,{ serverCreatedAt: new Date().toISOString(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount), source: options && options.forceAutomatic ? 'automatic' : 'manual', userId: auth.currentUser ? auth.currentUser.uid : null }); result.entryWritten=true; }catch(e){ console.warn(e); }
       result.newBalance = newBalance; return result;
     }
   }catch(err){ console.error(err); result.error = err; result.newBalance = (Number(lastBalance)||0) + Number(amount); return result; }
 }
 
-// Button handler (manual) - only for automated users
+// Button handler (manual) - теперь доступен любому авторизованному пользователю
 addBtn.onclick = async ()=>{
   let value = parseFloat(manualAmount.value);
   if(isNaN(value)){ showToast('Введите число!'); return; }
-  if(!auth.currentUser || !currentUserIsAutomated){
-    showToast('Ручное изменение доступно только автоматизированным пользователям');
+  if(!auth.currentUser){
+    showToast('Войдите, чтобы изменить баланс вручную');
     return;
   }
   addBtn.disabled = true;
@@ -264,8 +275,8 @@ async function initBalance(){
       const data = docSnap.data();
       lastBalance = (typeof data.balance === "number") ? data.balance : Number(data.balance) || lastBalance;
     } else {
-      // если в БД нет документа — показываем стартовую сумму (176000). Запись в БД будет делать серверная функция или автоматизированный пользователь.
-      lastBalance = lastBalance || 176000;
+      // если в БД нет документа — показываем стартовую сумму (учитывая 8-е число месяца)
+      lastBalance = lastBalance || START_BALANCE_DEFAULT;
     }
     balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
     updateHistory();
@@ -281,7 +292,7 @@ async function initBalance(){
       }catch(e){ console.error(e); }
     }, (err)=>{ console.error('onSnapshot error:', err); });
 
-  }catch(e){ console.error('Ошибка инициализации баланса:', e); balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU'); historyList.innerHTML = "Нет записей"; }
+  }catch(e){ console.error('Ошибка инициализации баланса:', e); balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU'); historyList.innerHTML = "Нет записе[...]
 }
 
 // auth state handling: читаем custom claims и включаем права для автоматизированных пользователей
@@ -298,10 +309,11 @@ onAuthStateChanged(auth, async user=>{
       const idRes = await user.getIdTokenResult(true);
       currentUserIsAutomated = Boolean(idRes.claims && idRes.claims.automated);
       if(currentUserIsAutomated) showToast('Права: автоматизированный пользователь');
-      else showToast('Права: обычный пользователь (ручное изменение запрещено)');
+      else showToast('Вход выполнен — ручное изменение доступно для авторизованных пользователей');
     }catch(e){ console.warn('getIdTokenResult error', e); currentUserIsAutomated = false; }
 
-    enableEditing(currentUserIsAutomated);
+    // enable editing for any logged-in user (manual add/subtract allowed)
+    enableEditing(true);
 
     (async ()=> {
       try{
