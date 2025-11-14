@@ -8,9 +8,11 @@
  * 3. Deploy the function:
  *    firebase deploy --only functions:dailyAdd
  * 
- * ENVIRONMENT VARIABLES:
+ * CONFIGURATION:
  * - DAILY_RATE: The daily accrual amount (default: 15000)
- *   Set via: firebase functions:config:set app.daily_rate=15000
+ *   Preferred method: firebase functions:config:set app.daily_rate=18000
+ *   Fallback: Set environment variable DAILY_RATE
+ *   Note: After setting config, redeploy the function for changes to take effect
  * 
  * BILLING NOTE:
  * Scheduled functions require the Firebase Blaze (pay-as-you-go) plan.
@@ -47,8 +49,10 @@ exports.dailyAdd = functions.pubsub
     try {
       console.log('dailyAdd function started at', new Date().toISOString());
       
-      // Get DAILY_RATE from environment or use default
-      const DAILY_RATE = Number(process.env.DAILY_RATE) || 15000;
+      // Get DAILY_RATE from functions config, environment, or use default
+      const configRate = functions.config().app?.daily_rate;
+      const envRate = process.env.DAILY_RATE;
+      const DAILY_RATE = Number(configRate || envRate) || 15000;
       console.log('Using DAILY_RATE:', DAILY_RATE);
       
       // Compute today's date as YYYY-MM-DD
