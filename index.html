@@ -8,9 +8,9 @@
 <style>
 :root{ --accent:#00796b; --accent-dark:#004d40; --card-bg: rgba(255,255,255,0.78); --card-shadow: 0 12px 30px rgba(6,22,37,0.12); }
 html,body{ height:100%; }
-body{ font-family:'Inter',sans-serif; margin:0; padding:0; min-height:100vh; position:relative; overflow-x:hidden; background:linear-gradient(120deg,#f0fbff 0%,#f6fff7 40%,#fffaf0 100%); color:#04363a[...]
+body{ font-family:'Inter',sans-serif; margin:0; padding:0; min-height:100vh; position:relative; overflow-x:hidden; background:linear-gradient(120deg,#f0fbff 0%,#f6fff7 40%,#fffaf0 100%); color:#04363a; }
 #main{ max-width:640px; margin:80px auto; text-align:center; padding:34px; background:var(--card-bg); border-radius:20px; box-shadow:var(--card-shadow); z-index:1; }
-#sidebar{ position:fixed; top:20px; right:20px; width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70)); padding:16px 22px; border-radius:14px; box-shadow:0 12p[...]
+#sidebar{ position:fixed; top:20px; right:20px; width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70)); padding:16px 22px; border-radius:14px; box-shadow:0 12px 30px rgba(6,22,37,0.06); }
 #sidebar h4{ margin:0; color:var(--accent); cursor:pointer; user-select:none; }
 #authForm{ margin-top:10px; max-height:0; opacity:0; transition:max-height 0.28s ease, opacity 0.28s ease; overflow:hidden; }
 #authForm.show{ max-height:220px; opacity:1; }
@@ -23,7 +23,7 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
 #manualAmount,#addBtn{ margin-top:14px; font-size:1em; }
 #addBtn{ display:flex; align-items:center; justify-content:center; gap:8px; }
 #historyContainer{ margin-top:34px; text-align:left; max-height:340px; overflow-y:auto; }
-.history-item{ padding:10px; margin:6px 0; background:rgba(255,255,255,0.85); border-radius:10px; box-shadow:0 4px 10px rgba(6,22,37,0.06); display:flex; justify-content:space-between; align-items:cen[...]
+.history-item{ padding:10px; margin:6px 0; background:rgba(255,255,255,0.85); border-radius:10px; box-shadow:0 4px 10px rgba(6,22,37,0.06); display:flex; justify-content:space-between; align-items:center; }
 @media (max-width:700px){ #main{ margin:60px 18px; padding:22px; } #sidebar{ width:calc(100% - 40px); right:20px; left:20px; top:auto; bottom:20px; } }
 </style>
 </head>
@@ -57,7 +57,7 @@ function showToast(text, timeout = 3500){
   let t = document.getElementById('__app_toast__');
   if(!t){
     t = document.createElement('div'); t.id='__app_toast__';
-    Object.assign(t.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',background:'rgba(6,22,37,0.9)',color:'#fff',padding:'10px 16px',borderRadius:'10px',zIndex:99999,fontF[...]
+    Object.assign(t.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',background:'rgba(6,22,37,0.9)',color:'#fff',padding:'10px 16px',borderRadius:'10px',zIndex:99999,fontFamily:'Inter, sans-serif'});
     document.body.appendChild(t);
   }
   t.textContent = text;
@@ -70,7 +70,7 @@ function showToast(text, timeout = 3500){
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
   getFirestore, doc, getDoc, setDoc, onSnapshot, collection,
-  addDoc, query, orderBy, getDocs, writeBatch, serverTimestamp
+  addDoc, query, orderBy, getDocs, writeBatch, serverTimestamp, where
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
@@ -105,20 +105,7 @@ const authForm = document.getElementById("authForm");
 
 // Settings
 const DAILY_RATE = 15000;
-const START_BALANCE_DEFAULT = 176000;
-const START_BALANCE_8TH = 101000; // новая стартовая сумма для 8-го числа месяца
-
-// вычисляем стартовую сумму: если сегодня 8-е число месяца — ставим 101000, иначе стандарт
-function getInitialLastBalance(){
-  try{
-    const d = new Date();
-    return d.getDate() === 8 ? START_BALANCE_8TH : START_BALANCE_DEFAULT;
-  }catch(e){
-    return START_BALANCE_DEFAULT;
-  }
-}
-
-let lastBalance = getInitialLastBalance(); // стартовая сумма (учитывает 8-е число текущего месяца)
+let lastBalance = 0; // теперь стартовая сумма будет обновлена из Firestore при инициализации
 let holidays = []; // при необходимости добавьте даты YYYY-MM-DD
 
 // privilege flag for automated behavior (keeps original meaning)
@@ -176,7 +163,7 @@ async function updateHistory(){
 }
 
 // commitBalanceChange: options.forceAutomatic = true allows automatic writes (daily).
-// Раньше вручную можно было писать только при automated-пользователе — теперь разрешаем ручные изменения любому авторизованному пользователю.
+// ручные изменения теперь разрешены любому авторизованному пользователю
 async function commitBalanceChange(amount, options = { forceAutomatic: false }){
   const result = { newBalance:null, balanceWritten:false, entryWritten:false, error:null };
 
@@ -186,7 +173,6 @@ async function commitBalanceChange(amount, options = { forceAutomatic: false }){
     return result;
   }
 
-  // NB: removed strict block on non-automated users so that any authenticated user can make manual changes.
   try{
     const balSnap = await getDoc(balanceDocRef);
     let current = balSnap && balSnap.exists() && typeof balSnap.data().balance === 'number' ? balSnap.data().balance : (Number(lastBalance)||0);
@@ -196,7 +182,6 @@ async function commitBalanceChange(amount, options = { forceAutomatic: false }){
       const batch = writeBatch(db);
       batch.set(balanceDocRef, { balance: newBalance }, { merge: true });
       const newEntryRef = doc(entriesColRef);
-      // помечаем источник записи: automatic (для ежедневного), manual (для ручного)
       const source = options && options.forceAutomatic ? 'automatic' : 'manual';
       batch.set(newEntryRef, { serverCreatedAt: serverTimestamp(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount), source, userId: auth.currentUser ? auth.currentUser.uid : null });
       await batch.commit();
@@ -210,7 +195,7 @@ async function commitBalanceChange(amount, options = { forceAutomatic: false }){
   }catch(err){ console.error(err); result.error = err; result.newBalance = (Number(lastBalance)||0) + Number(amount); return result; }
 }
 
-// Button handler (manual) - теперь доступен любому авторизованному пользователю
+// Button handler (manual) - доступен любому авторизованному пользователю
 addBtn.onclick = async ()=>{
   let value = parseFloat(manualAmount.value);
   if(isNaN(value)){ showToast('Введите число!'); return; }
@@ -228,11 +213,20 @@ addBtn.onclick = async ()=>{
   }catch(e){ console.error(e); showToast('Ошибка при сохранении'); } finally { addBtn.disabled = false; }
 };
 
-// CLIENT daily fallback — запускает автоматическое добавление для текущей даты (forceAutomatic:true)
+// CLIENT daily fallback — перед добавлением проверяем, есть ли уже запись за сегодня, чтобы не дублировать
 async function addDailyRateForToday(){
   if(!auth.currentUser){ console.log('client daily skipped: not authenticated'); return; }
   try{
     const todayStr = new Date().toISOString().split('T')[0];
+
+    // проверяем, не добавлено ли уже сегодня
+    const qCheck = query(entriesColRef, where('dateString', '==', todayStr));
+    const snapCheck = await getDocs(qCheck);
+    if(!snapCheck.empty){
+      console.log('Сегодняшняя запись уже существует — пропускаем добавление');
+      return;
+    }
+
     const todayRate = holidays.includes(todayStr) ? (DAILY_RATE + 5000) : DAILY_RATE; // пример если праздник
     const res = await commitBalanceChange(todayRate, { forceAutomatic: true });
     animateBalanceChange(res.newBalance, lastBalance, todayRate);
@@ -267,16 +261,16 @@ document.addEventListener('click', (e)=>{
   }
 });
 
-// init balance and realtime
+// init balance and realtime — теперь всегда берём баланс из Firestore, если он есть
 async function initBalance(){
   try{
     const docSnap = await getDoc(balanceDocRef);
     if(docSnap && docSnap.exists()){
       const data = docSnap.data();
-      lastBalance = (typeof data.balance === "number") ? data.balance : Number(data.balance) || lastBalance;
+      lastBalance = (typeof data.balance === "number") ? data.balance : Number(data.balance) || 0;
     } else {
-      // если в БД нет документа — показываем стартовую сумму (учитывая 8-е число месяца)
-      lastBalance = lastBalance || START_BALANCE_DEFAULT;
+      // если в БД нет документа — показываем 0, чтобы не перезаписывать серверный источник
+      lastBalance = 0;
     }
     balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
     updateHistory();
@@ -292,7 +286,7 @@ async function initBalance(){
       }catch(e){ console.error(e); }
     }, (err)=>{ console.error('onSnapshot error:', err); });
 
-  }catch(e){ console.error('Ошибка инициализации баланса:', e); balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU'); historyList.innerHTML = "Нет записе[...]
+  }catch(e){ console.error('Ошибка инициализации баланса:', e); balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU'); historyList.innerHTML = "Нет записей"; }
 }
 
 // auth state handling: читаем custom claims и включаем права для автоматизированных пользователей
@@ -312,14 +306,13 @@ onAuthStateChanged(auth, async user=>{
       else showToast('Вход выполнен — ручное изменение доступно для авторизованных пользователей');
     }catch(e){ console.warn('getIdTokenResult error', e); currentUserIsAutomated = false; }
 
-    // enable editing for any logged-in user (manual add/subtract allowed)
     enableEditing(true);
 
     (async ()=> {
       try{
         const snap = await getDoc(balanceDocRef);
         if(!snap.exists() && currentUserIsAutomated){
-          // при первом инициализирующем автоматизированном пользователе можно записать стартовую сумму
+          // при первом инициализирующем автоматизированном пользователе можно записать стартовую сумму (если нужно)
           await setDoc(balanceDocRef, { balance: lastBalance }, { merge:true });
         }
         updateHistory();
