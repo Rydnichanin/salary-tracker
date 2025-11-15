@@ -25,7 +25,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 exports.dailyAdd = functions.pubsub
-  .schedule('every day 00:05')
+  .schedule('every day 10:30')
   .timeZone('Europe/Moscow')
   .onRun(async (context) => {
     try {
