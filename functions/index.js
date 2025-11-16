@@ -8,25 +8,27 @@ exports.dailySalaryUpdate = functions.pubsub
   .timeZone("Asia/Almaty")
   .onRun(async () => {
     const dailyAmount = 15000;
+    const userId = "main"; // ID документа salaryData/main
 
-    const userId = "main"; // ← твой ID документа salaryData/main
+    const db = admin.firestore();
+    const salaryRef = db.doc(`salaryData/${userId}`);
+    const balanceRef = db.doc(`users/${userId}`);
 
-    const salaryRef = admin.firestore().doc(`salaryData/${userId}`);
-    const balanceRef = admin.firestore().doc(`users/${userId}`);
+    try {
+      // Используем FieldValue.increment и set с merge: true — безопаснее:
+      // инкремент атомарен и создаст поля/документы при необходимости.
+      const increment = admin.firestore.FieldValue.increment(dailyAmount);
 
-    const salarySnap = await salaryRef.get();
-    const balanceSnap = await balanceRef.get();
+      await Promise.all([
+        salaryRef.set({ paidOut: increment }, { merge: true }),
+        balanceRef.set({ salary: increment }, { merge: true }),
+      ]);
 
-    const currentPaidOut = salarySnap.data()?.paidOut || 0;
-    const currentBalance = balanceSnap.data()?.salary || 0;
-
-    const newPaidOut = currentPaidOut + dailyAmount;
-    const newBalance = currentBalance + dailyAmount;
-
-    await salaryRef.update({ paidOut: newPaidOut });
-    await balanceRef.update({ salary: newBalance });
-
-    console.log("Daily salary added:", dailyAmount);
-
-    return null;
+      console.log(`Daily salary added: ${dailyAmount} to ${userId}`);
+      return null;
+    } catch (error) {
+      console.error("Error updating daily salary:", error);
+      // пробрасываем ошибку, чтобы платформа отметила неудачное выполнение, если нужно
+      throw error;
+    }
   });
