@@ -1,0 +1,41 @@
+name: Daily Salary Update
+
+# Запускается по cron (UTC). 22:00 Asia/Almaty = 16:00 UTC
+on:
+  schedule:
+    - cron: '0 16 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  update-salary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install firebase-admin
+        run: npm install firebase-admin@latest
+
+      - name: Write service account file
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "FIREBASE_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          echo "$FIREBASE_SERVICE_ACCOUNT" > serviceAccountKey.json
+          chmod 600 serviceAccountKey.json
+
+      - name: Run update script
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/serviceAccountKey.json
+          DAILY_AMOUNT: ${{ secrets.DAILY_AMOUNT }} # опционально
+          USER_ID: ${{ secrets.USER_ID }} # опционально
+        run: |
+          node scripts/updateSalary.js
