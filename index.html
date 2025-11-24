@@ -83,11 +83,8 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
 </div>
 
 <div id="main">
-  <!-- Картинка теперь обёрнута ссылкой на источник.
-       Добавлены loading="lazy" и referrerpolicy="no-referrer", чтобы уменьшить влияние при загрузке.
-       Также явно ограничен размер через CSS, чтобы не ломать верстку. -->
   <div class="server-badge">
-    <a href="https://png.pngtree.com/png-clipart/20240909/original/pngtree-money-mouth-face-emoji-png-image_15980567.png" target="_blank" rel="noopener noreferrer" title="Открыть картинку на pngtree">
+    <a href="https://png.pngtree.com/png-clipart/20240909/original/pngtree-money-mouth-face-emoji-png-image_15980567.png" target="_blank" rel="noopener noreferrer" title="Открыть картинку">
       <img src="https://png.pngtree.com/png-clipart/20240909/original/pngtree-money-mouth-face-emoji-png-image_15980567.png"
            alt="Money emoji" width="40" height="40" loading="lazy" referrerpolicy="no-referrer">
     </a>
@@ -103,7 +100,6 @@ button:disabled{ background:#bbb; cursor:not-allowed; }
   </div>
 </div>
 
-<!-- место для анимированной подсказки изменений -->
 <div id="floatChange" class="float-change" aria-hidden="true"></div>
 
 <script type="module">
@@ -129,56 +125,10 @@ function showToast(text, timeout = 3500){
 // Firebase (CDN, modular)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, setDoc, onSnapshot, collection,
+  getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection,
   addDoc, query, orderBy, getDocs, writeBatch, serverTimestamp, where
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } // === DAILY AUTO ADD ===
-async function autoAddDailyIncome() {
-    const userRef = doc(db, "users", user.uid);
-    const snap = await getDoc(userRef);
-
-    if (!snap.exists()) return;
-
-    const data = snap.data();
-    const dailyRate = data.dailyRate || DAILY_RATE;
-    const lastAdd = data.lastDailyAdd ? new Date(data.lastDailyAdd) : null;
-    const now = new Date();
-
-    let daysPassed = 0;
-
-    if (!lastAdd) {
-        // Первый запуск — устанавливаем сегодняшнюю дату без начисления
-        await updateDoc(userRef, { lastDailyAdd: now.toISOString() });
-        return;
-    } else {
-        // Считаем количество целых дней
-        const diffMs = now - lastAdd;
-        daysPassed = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    }
-
-    if (daysPassed <= 0) return;
-
-    // Сумма к добавлению
-    const addAmount = daysPassed * dailyRate;
-
-    // Добавляем
-    const res = await commitBalanceChange(addAmount, { forceAutomatic: true });
-
-    // Анимация
-    animateBalanceChange(res.newBalance, lastBalance, addAmount);
-    lastBalance = res.newBalance;
-
-    // Обновляем дату
-    const updatedDate = new Date();
-    updatedDate.setHours(0, 0, 0, 0); // фиксируем на начало дня
-    await updateDoc(userRef, { lastDailyAdd: updatedDate.toISOString() });
-
-    console.log(`Автоматически начислено за ${daysPassed} дней: ${addAmount}`);
-}
-
-// Запуск функции автоматического начисления
-await autoAddDailyIncome();
- from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 // Вставьте ваш firebaseConfig (в репо уже есть)
 const firebaseConfig = {
@@ -242,14 +192,10 @@ function enableEditing(enabled){
 function animateBalanceChange(newBalance, prevBalance, changeAmount = 0, duration = 700){
   const from = Number(prevBalance) || 0;
   const to = Number(newBalance) || 0;
-  // color based on net difference
   balanceDisplay.style.color = (to - from >= 0) ? "#2e7d32" : "#c62828";
-
-  // numeric animation
   const start = performance.now();
   function step(ts){
     const t = Math.min(1, (ts - start) / duration);
-    // easeOutCubic
     const eased = 1 - Math.pow(1 - t, 3);
     const current = Math.round(from + (to - from) * eased);
     balanceDisplay.textContent = current.toLocaleString('ru-RU');
@@ -257,13 +203,11 @@ function animateBalanceChange(newBalance, prevBalance, changeAmount = 0, duratio
   }
   requestAnimationFrame(step);
 
-  // floating change badge
   if(changeAmount !== 0){
     const sign = changeAmount > 0 ? "+" : "-";
     floatChange.textContent = `${sign}${Math.abs(changeAmount).toLocaleString('ru-RU')}`;
     floatChange.classList.add('show');
     floatChange.style.background = (changeAmount>0) ? 'rgba(46,125,50,0.9)' : 'rgba(198,40,40,0.9)';
-    // auto hide
     setTimeout(()=> floatChange.classList.remove('show'), 1400);
   }
 }
@@ -277,12 +221,10 @@ async function updateHistory(){
     historyList.innerHTML = "";
     snap.forEach(d=>{
       const data = d.data();
-      // serverCreatedAt может быть либо timestamp либо ISO string
       let dateStr = data.dateString || (data.serverCreatedAt && typeof data.serverCreatedAt.toDate === 'function' ? data.serverCreatedAt.toDate().toLocaleString() : (data.serverCreatedAt || '—'));
       const amount = (typeof data.amount === "number")? data.amount.toLocaleString('ru-RU') : String(data.amount);
       const sign = (data.amount >= 0) ? "+" : "-";
       const div = document.createElement("div"); div.className = "history-item";
-      // Enhanced source display: show source and service if available
       let src = "";
       if(data.source){
         src = ` (${data.source}`;
@@ -296,7 +238,6 @@ async function updateHistory(){
 }
 
 // commitBalanceChange: atomic-ish approach using batch; writes entry with source/manual or automatic.
-// options.forceAutomatic = true marks source 'automatic'
 async function commitBalanceChange(amount, options = { forceAutomatic: false }){
   const result = { newBalance:null, balanceWritten:false, entryWritten:false, error:null };
 
@@ -316,61 +257,36 @@ async function commitBalanceChange(amount, options = { forceAutomatic: false }){
       batch.set(balanceDocRef, { balance: newBalance }, { merge: true });
       const newEntryRef = doc(entriesColRef);
       const source = options && options.forceAutomatic ? 'automatic' : 'manual';
-      batch.set(newEntryRef, { serverCreatedAt: serverTimestamp(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount), source, userId: auth.currentUser ? auth.currentUser.uid : null }, { merge: true });
+      batch.set(newEntryRef, { serverCreatedAt: serverTimestamp(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount), source, userId: auth.currentUser ? auth.currentUser.uid : null });
       await batch.commit();
       result.newBalance = newBalance; result.balanceWritten = true; result.entryWritten = true; return result;
     }catch(batchErr){
       console.warn('Batch failed, fallback:', batchErr);
       try{ await setDoc(balanceDocRef, { balance: newBalance }, { merge: true }); result.balanceWritten=true; }catch(e){ result.error=e; }
-      try{ await addDoc(entriesColRef,{ serverCreatedAt: new Date().toISOString(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount), source: options && options.forceAutomatic ? 'automatic' : 'manual', userId: auth.currentUser ? auth.currentUser.uid : null }); result.entryWritten=true; }catch(e){ result.error = e; }
+      try{ await addDoc(entriesColRef,{ serverCreatedAt: new Date().toISOString(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount), source: options && options.forceAutomatic ? 'automatic' : 'manual', userId: auth.currentUser ? auth.currentUser.uid : null }); result.entryWritten = true; }catch(e){ console.warn('addDoc fallback failed', e); }
       result.newBalance = newBalance; return result;
     }
   }catch(err){ console.error(err); result.error = err; result.newBalance = (Number(lastBalance)||0) + Number(amount); return result; }
 }
 
-// Button handler (manual)
-addBtn.onclick = async ()=>{
-  let value = parseFloat(manualAmount.value);
-  if(isNaN(value)){ showToast('Введите число!'); return; }
-  if(!auth.currentUser){
-    showToast('Войдите, чтобы изменить баланс вручную');
-    return;
-  }
-  addBtn.disabled = true;
-  try{
-    const res = await commitBalanceChange(value, { forceAutomatic: false });
-    animateBalanceChange(res.newBalance, lastBalance, value);
-    lastBalance = res.newBalance; manualAmount.value = "";
-    try{ await updateHistory(); }catch(e){ console.warn(e); }
-    if(res.balanceWritten && res.entryWritten) showToast('Изменение сохранено'); else showToast('Частичное/неудачное сохранение (см. консоль)');
-  }catch(e){ console.error(e); showToast('Ошибка при сохранении'); } finally { addBtn.disabled = false; }
-};
-
 // CLIENT daily fallback — перед добавлением проверяем, есть ли уже запись за сегодня, чтобы не дублировать
 async function addDailyRateForToday(){
-  // When server handles daily accruals, client should not duplicate
   if(SERVER_HANDLES_DAILY){
     console.log('client daily skipped: server handles daily accruals');
     return;
   }
-  
-  // require authenticated user (the client can do automatic if logged in).
-  // Если вы хотите, чтобы это выполнялось серверно, лучше реализовать Cloud Function (рекомендую).
   if(!auth.currentUser){
     console.log('client daily skipped: not authenticated');
     return;
   }
   try{
     const todayStr = new Date().toISOString().split('T')[0];
-
-    // проверяем, не добавлено ли уже сегодня
     const qCheck = query(entriesColRef, where('dateString', '==', todayStr));
     const snapCheck = await getDocs(qCheck);
     if(!snapCheck.empty){
       console.log('Сегодняшняя запись уже существует — пропускаем добавление');
       return;
     }
-
     const todayRate = holidays.includes(todayStr) ? (DAILY_RATE + 5000) : DAILY_RATE;
     const res = await commitBalanceChange(todayRate, { forceAutomatic: true });
     animateBalanceChange(res.newBalance, lastBalance, todayRate);
@@ -380,18 +296,16 @@ async function addDailyRateForToday(){
   }catch(e){ console.error(e); }
 }
 
-// Client day watcher: проверяем смену локальной даты каждую минуту и запускаем фоллбек один раз
+// Client day watcher (активируется только если SERVER_HANDLES_DAILY === false)
 (function setupClientDayWatcher(){
-  // Skip client day watcher when server handles daily accruals
   if(SERVER_HANDLES_DAILY){
     console.log('Client day watcher disabled: server handles daily accruals');
     return;
   }
-  
+
   const KEY = 'client_last_daily_date';
   function getTodayStr(){ return new Date().toISOString().split('T')[0]; }
 
-  // run once on load (in case the app started after midnight)
   (async ()=>{
     try{
       const stored = localStorage.getItem(KEY);
@@ -431,7 +345,6 @@ async function initBalance(){
       const data = docSnap.data();
       lastBalance = (typeof data.balance === "number") ? data.balance : Number(data.balance) || 0;
     } else {
-      // если в БД нет документа — показываем 0 (не перезаписываем)
       lastBalance = 0;
     }
     balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
@@ -458,7 +371,7 @@ onAuthStateChanged(auth, async user=>{
     loginBtnEl.style.display = "none";
     logoutBtnEl.style.display = "inline-block";
     emailInput.style.display = passwordInput.style.display = "none";
-    authForm.classList.remove("show"); // сворачиваем
+    authForm.classList.remove("show");
     toggleAuth.textContent = "Пользователь авторизован";
 
     try{
@@ -468,18 +381,18 @@ onAuthStateChanged(auth, async user=>{
       else showToast('Вход выполнен — ручное изменение доступно для авторизованных пользователей');
     }catch(e){ console.warn('getIdTokenResult error', e); currentUserIsAutomated = false; }
 
-    // allow manual editing for any logged-in user
     enableEditing(true);
 
     (async ()=> {
       try{
         const snap = await getDoc(balanceDocRef);
         if(!snap.exists() && currentUserIsAutomated){
-          // при первом инициализирующем автоматизированном пользователе можно записать стартовую сумму (если нужно)
           await setDoc(balanceDocRef, { balance: lastBalance }, { merge:true });
         }
-        // try to run daily add if needed (immediately after login)
-        await addDailyRateForToday();
+        // Если нужно — запускать клиентское авто-начисление после логина
+        if(!SERVER_HANDLES_DAILY){
+          await addDailyRateForToday();
+        }
         updateHistory();
       }catch(e){ console.warn('Post-login init error:', e); }
     })();
