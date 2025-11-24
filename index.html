@@ -132,7 +132,53 @@ import {
   getFirestore, doc, getDoc, setDoc, onSnapshot, collection,
   addDoc, query, orderBy, getDocs, writeBatch, serverTimestamp, where
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } // === DAILY AUTO ADD ===
+async function autoAddDailyIncome() {
+    const userRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userRef);
+
+    if (!snap.exists()) return;
+
+    const data = snap.data();
+    const dailyRate = data.dailyRate || DAILY_RATE;
+    const lastAdd = data.lastDailyAdd ? new Date(data.lastDailyAdd) : null;
+    const now = new Date();
+
+    let daysPassed = 0;
+
+    if (!lastAdd) {
+        // Первый запуск — устанавливаем сегодняшнюю дату без начисления
+        await updateDoc(userRef, { lastDailyAdd: now.toISOString() });
+        return;
+    } else {
+        // Считаем количество целых дней
+        const diffMs = now - lastAdd;
+        daysPassed = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    }
+
+    if (daysPassed <= 0) return;
+
+    // Сумма к добавлению
+    const addAmount = daysPassed * dailyRate;
+
+    // Добавляем
+    const res = await commitBalanceChange(addAmount, { forceAutomatic: true });
+
+    // Анимация
+    animateBalanceChange(res.newBalance, lastBalance, addAmount);
+    lastBalance = res.newBalance;
+
+    // Обновляем дату
+    const updatedDate = new Date();
+    updatedDate.setHours(0, 0, 0, 0); // фиксируем на начало дня
+    await updateDoc(userRef, { lastDailyAdd: updatedDate.toISOString() });
+
+    console.log(`Автоматически начислено за ${daysPassed} дней: ${addAmount}`);
+}
+
+// Запуск функции автоматического начисления
+await autoAddDailyIncome();
+ from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 // Вставьте ваш firebaseConfig (в репо уже есть)
 const firebaseConfig = {
