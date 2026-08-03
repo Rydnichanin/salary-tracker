@@ -309,16 +309,27 @@
                 const text = await response.text();
                 return text ? JSON.parse(text) : [];
             } catch (e) {
-                console.error(e);
+                console.error("Ошибка загрузки:", e);
                 return [];
             }
         }
 
         async function saveItems(items) {
-            await fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify(items)
-            });
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'PUT', // Использован PUT для корректного сохранения в kvdb.io
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(items)
+                });
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+            } catch (e) {
+                console.error("Ошибка сохранения:", e);
+                alert('Не удалось сохранить данные на сервер! Проверьте подключение к интернету.');
+            }
         }
 
         async function loadAdminData() {
@@ -385,11 +396,8 @@
                     }
                 });
 
-                // Если администратор уже задал переопределенное количество, используем его для расчетов
-                let effectiveQtyNumber = sumNum;
                 let displayQuantityValue = group.overrideQuantity !== null ? group.overrideQuantity : (canSum ? (Number.isInteger(sumNum) ? sumNum + (unit ? ' ' + unit : '') : sumNum.toFixed(1) + (unit ? ' ' + unit : '')) : group.entries.map(e => e.quantity).join(', '));
 
-                // Попытка извлечь число для расчета стоимости из измененного количества
                 let currentNumForCalc = sumNum;
                 if (group.overrideQuantity !== null) {
                     const matchOverride = String(group.overrideQuantity).trim().match(/^([\d.,]+)/);
@@ -398,7 +406,7 @@
                         if (!isNaN(parsed)) currentNumForCalc = parsed;
                     }
                 } else if (!canSum) {
-                    currentNumForCalc = 1; // если разные ед. и не переопределено, умножаем на 1 или единичную цену
+                    currentNumForCalc = 1;
                 }
 
                 let rowTotalPrice = currentNumForCalc * group.unitPrice;
@@ -408,7 +416,7 @@
                 tr.innerHTML = `
                     <td><b>${escapeHtml(group.foodName)}</b></td>
                     <td>
-                        <input type="text" value="${displayQuantityValue}" onchange="updateGroupQuantity('${key}', this.value)" placeholder="Общее кол-во">
+                        <input type="text" value="${escapeHtml(displayQuantityValue)}" onchange="updateGroupQuantity('${key}', this.value)" placeholder="Общее кол-во">
                     </td>
                     <td>
                         <input type="number" step="any" value="${group.unitPrice || ''}" onchange="updateGroupUnitPrice('${key}', this.value)" placeholder="За ед. ₸">
@@ -528,6 +536,7 @@
             
             document.getElementById('personName').value = '';
             document.getElementById('customItemsContainer').innerHTML = ''; 
+            addCustomRow(); // вернуть одну пустую строчку
             document.getElementById('loading').style.display = 'none';
             
             alert('Ваш список успешно отправлен!');
