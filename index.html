@@ -149,7 +149,7 @@
 </head>
 <body>
 
-    <!-- Заголовок, нажав на который 10 раз откроется секретная админка -->
+    <!-- Нажмите 10 раз для открытия админки -->
     <h1 class="main-title" id="mainTitle" title="Нажмите 10 раз">🏕️ Еда на турбазу</h1>
     <div class="click-hint">Соберите всё необходимое для отличного отдыха</div>
 
@@ -180,21 +180,22 @@
         <div id="loading" class="loading">Отправка данных...</div>
     </div>
 
-    <!-- Секретная админ-панель (скрыта, открывается по 10 кликам на заголовок) -->
+    <!-- Секретная админ-панель -->
     <div class="card admin-section" id="adminSection">
         <h2>🔒 Секретная панель организатора</h2>
-        <p style="color: #aaa;">Здесь отображается суммарное количество продуктов и подробная детализация по каждому участнику.</p>
+        <p style="color: #aaa;">Укажите цену за единицу (за 1 кг / литр / шт), и сайт автоматически рассчитает общую сумму закупки.</p>
         
         <div id="adminLoading" class="loading">Загрузка данных...</div>
 
-        <h3>📦 Общий список для закупки</h3>
+        <h3>📦 Общий список и расчет цены</h3>
         <div style="overflow-x: auto;">
             <table>
                 <thead>
                     <tr>
                         <th>Продукт</th>
-                        <th>Общее количество</th>
-                        <th>Цена за всё (₸)</th>
+                        <th>Общее кол-во</th>
+                        <th>Цена за ед. (₸)</th>
+                        <th>Итого за всё (₸)</th>
                         <th>Действие</th>
                     </tr>
                 </thead>
@@ -235,7 +236,6 @@
             "🪵 Разное": ["Уголь древесный", "Жидкость для розжига", "Одноразовая посуда", "Салфетки"]
         };
 
-        // Логика 10 кликов для секретной панели
         let clickCount = 0;
         const mainTitle = document.getElementById('mainTitle');
         const adminSection = document.getElementById('adminSection');
@@ -301,14 +301,14 @@
             document.getElementById('adminLoading').style.display = 'none';
         }
 
-        // Сводная таблица (суммарное количество)
+        // Сводная таблица с расчетом по цене за единицу
         function renderSummaryTable(items) {
             const tbody = document.getElementById('summaryItemsList');
             tbody.innerHTML = '';
             let grandTotal = 0;
 
             if (items.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Пока никто ничего не добавил.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">Пока никто ничего не добавил.</td></tr>`;
                 document.getElementById('totalAmount').innerText = '0';
                 return;
             }
@@ -320,11 +320,13 @@
                     groups[key] = {
                         foodName: item.food,
                         entries: [],
-                        totalPrice: 0
+                        unitPrice: item.unit_price !== undefined ? item.unit_price : 0
                     };
                 }
                 groups[key].entries.push(item);
-                groups[key].totalPrice += Number(item.price || 0);
+                if (item.unit_price !== undefined) {
+                    groups[key].unitPrice = item.unit_price;
+                }
             });
 
             for (const [key, group] of Object.entries(groups)) {
@@ -353,23 +355,29 @@
                 });
 
                 let totalQtyDisplay = '';
+                let rowTotalPrice = 0;
+
                 if (canSum) {
                     const formattedSum = Number.isInteger(sumNum) ? sumNum : sumNum.toFixed(1);
                     totalQtyDisplay = `<b>${formattedSum} ${unit}</b>`;
+                    rowTotalPrice = sumNum * group.unitPrice;
                 } else {
                     let parts = group.entries.map(e => e.quantity);
-                    totalQtyDisplay = `<b>${parts.join(', ')}</b>`;
+                    totalQtyDisplay = `<b>${parts.join(', ')}</b> (разные ед.)`;
+                    // Если единицы разные, цена за ед. работает как фиксированная цена за всю позицию
+                    rowTotalPrice = group.unitPrice; 
                 }
 
-                grandTotal += group.totalPrice;
+                grandTotal += rowTotalPrice;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><b>${escapeHtml(group.foodName)}</b></td>
                     <td>${totalQtyDisplay}</td>
                     <td>
-                        <input type="number" step="any" value="${group.totalPrice}" onchange="updateGroupPrice('${key}', this.value)" placeholder="₸">
+                        <input type="number" step="any" value="${group.unitPrice || ''}" onchange="updateGroupUnitPrice('${key}', this.value)" placeholder="За ед. ₸">
                     </td>
+                    <td><b>${rowTotalPrice.toFixed(2)} ₸</b></td>
                     <td>
                         <button class="btn-danger" onclick="deleteGroup('${key}')">Удалить всё</button>
                     </td>
@@ -404,18 +412,13 @@
             });
         }
 
-        async function updateGroupPrice(groupKey, newTotalPrice) {
+        async function updateGroupUnitPrice(groupKey, newUnitPrice) {
             const items = await fetchItems();
-            const priceVal = parseFloat(newTotalPrice) || 0;
-            let assigned = false;
+            const priceVal = parseFloat(newUnitPrice) || 0;
+            
             items.forEach(item => {
                 if (item.food.trim().toLowerCase() === groupKey) {
-                    if (!assigned) {
-                        item.price = priceVal;
-                        assigned = true;
-                    } else {
-                        item.price = 0;
-                    }
+                    item.unit_price = priceVal;
                 }
             });
             await saveItems(items);
@@ -437,7 +440,6 @@
             loadAdminData();
         }
 
-        // Отправка формы участником
         document.getElementById('turbazaForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const person = document.getElementById('personName').value.trim();
@@ -451,7 +453,7 @@
                     const qtyInput = document.getElementById(`qty_${category}_${idx}`);
                     if (checkbox && checkbox.checked) {
                         const quantity = qtyInput.value.trim() || '1 шт';
-                        newEntries.push({ person, food: item, quantity, price: 0 });
+                        newEntries.push({ person, food: item, quantity, unit_price: 0 });
                         checkbox.checked = false;
                         qtyInput.value = '';
                     }
@@ -464,7 +466,7 @@
                 const name = customNames[i].value.trim();
                 const qty = customQtys[i].value.trim();
                 if (name) {
-                    newEntries.push({ person, food: name, quantity: qty || '1 шт', price: 0 });
+                    newEntries.push({ person, food: name, quantity: qty || '1 шт', unit_price: 0 });
                     customNames[i].value = '';
                     customQtys[i].value = '';
                 }
