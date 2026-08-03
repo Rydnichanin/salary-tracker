@@ -5,102 +5,223 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Еда на турбазу</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 15px; background: #f4f4f9; color: #333; }
-        h1, h2, h3 { color: #2c3e50; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .nav-tabs button { flex: 1; padding: 10px; background: #bdc3c7; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1rem; color: #fff; }
-        .nav-tabs button.active { background: #3498db; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; font-size: 0.9rem; }
-        th { background-color: #3498db; color: white; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        
-        .card { background: #fff; padding: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 5px; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 8px; margin: 5px 0 12px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        
-        .catalog-category { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .catalog-category h4 { margin: 5px 0 10px 0; color: #16a085; }
-        .catalog-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.95rem; }
-        .catalog-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-        .catalog-item input[type="text"] { margin: 0; width: 150px; padding: 5px; }
-        
-        button.main-btn { background-color: #2ecc71; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; width: 100%; font-weight: bold; margin-top: 10px; }
-        button.main-btn:hover { background-color: #27ae60; }
-        .btn-danger { background-color: #e74c3c; padding: 5px 10px; font-size: 0.8rem; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .btn-danger:hover { background-color: #c0392b; }
-        
-        .total-box { font-size: 1.2rem; font-weight: bold; margin-top: 20px; background: #e8f8f5; padding: 15px; border-left: 5px solid #2ecc71; border-radius: 4px; }
-        .loading { text-align: center; color: #666; font-style: italic; margin-top: 20px; }
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px;
+        }
+        h1, h2, h3, h4 {
+            color: #d4af37; /* Благородный золотой */
+        }
+        .card {
+            background-color: #1a1a1a;
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+        input[type="text"], input[type="number"] {
+            background-color: #242424;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        input[type="text"]:focus, input[type="number"]:focus {
+            border-color: #d4af37;
+            outline: none;
+            box-shadow: 0 0 5px rgba(212, 175, 55, 0.4);
+        }
+        button.btn-gold {
+            background: linear-gradient(135deg, #d4af37, #aa771c);
+            color: #121212;
+            font-weight: bold;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2);
+        }
+        button.btn-gold:hover {
+            background: linear-gradient(135deg, #f1c40f, #d4af37);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #333;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        th {
+            background-color: #24200e;
+            color: #d4af37;
+        }
+        tr:nth-child(even) {
+            background-color: #161616;
+        }
+        .btn-danger {
+            background-color: #8b0000;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .btn-danger:hover {
+            background-color: #a93226;
+        }
+        .total-box {
+            background-color: #24200e;
+            border-left: 5px solid #d4af37;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #d4af37;
+            border-radius: 4px;
+        }
+        .admin-section {
+            display: none;
+            border: 2px dashed #d4af37;
+            margin-top: 30px;
+            background-color: #181818;
+        }
+        .catalog-category {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #2a2a2a;
+            padding-bottom: 10px;
+        }
+        .catalog-category h4 {
+            margin: 5px 0 10px 0;
+            color: #e6c687;
+        }
+        .catalog-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .catalog-item input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            accent-color: #d4af37;
+            cursor: pointer;
+        }
+        .catalog-item input[type="text"] {
+            width: 140px;
+            margin: 0;
+            padding: 6px;
+        }
+        .loading {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            margin-top: 15px;
+            display: none;
+        }
+        .main-title {
+            cursor: pointer;
+            user-select: none;
+            display: inline-block;
+        }
+        .click-hint {
+            font-size: 0.75rem;
+            color: #555;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>🏕️ Еда на турбазу</h1>
+    <!-- Заголовок, нажав на который 10 раз откроется секретная админка -->
+    <h1 class="main-title" id="mainTitle" title="Нажмите 10 раз">🏕️ Еда на турбазу</h1>
+    <div class="click-hint">Соберите всё необходимое для отличного отдыха</div>
 
-    <!-- Переключение между формой для участников и админкой -->
-    <div class="nav-tabs">
-        <button id="btnTabForm" class="active" onclick="switchTab('form')">📝 Заполнить список</button>
-        <button id="btnTabAdmin" onclick="switchTab('admin')">🔒 Админ-панель</button>
-    </div>
+    <!-- Основная форма для участников -->
+    <div class="card">
+        <form id="turbazaForm">
+            <h3>Ваши данные</h3>
+            <label><b>Ваше имя:</b></label>
+            <input type="text" id="personName" required placeholder="Например, Алексей">
 
-    <div id="loading" class="loading">Загрузка данных...</div>
+            <h3>1. Выберите из каталога:</h3>
+            <div id="catalogContainer"></div>
 
-    <!-- Вкладка: Заполнение списка -->
-    <div id="tabForm" class="tab-content active">
-        <div class="card">
-            <form id="turbazaForm">
-                <h3>Ваши данные</h3>
-                <label>Ваше имя:</label>
-                <input type="text" id="personName" required placeholder="Например, Алексей">
-
-                <h3>1. Выберите из каталога:</h3>
-                <div id="catalogContainer"></div>
-
-                <h3>2. Добавить свое (чего нет в списке):</h3>
-                <div id="customItemsContainer">
-                    <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-                        <input type="text" placeholder="Название (например, Лаваш)" class="custom-name" style="flex: 2; margin:0;">
-                        <input type="text" placeholder="Кол-во (3 шт)" class="custom-qty" style="flex: 1; margin:0;">
-                    </div>
-                    <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-                        <input type="text" placeholder="Название еще чего-то" class="custom-name" style="flex: 2; margin:0;">
-                        <input type="text" placeholder="Кол-во" class="custom-qty" style="flex: 1; margin:0;">
-                    </div>
+            <h3>2. Добавить свое (чего нет в списке):</h3>
+            <div id="customItemsContainer">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" placeholder="Название (например, Лаваш)" class="custom-name" style="flex: 2; margin:0;">
+                    <input type="text" placeholder="Кол-во (3 шт)" class="custom-qty" style="flex: 1; margin:0;">
                 </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" placeholder="Название еще чего-то" class="custom-name" style="flex: 2; margin:0;">
+                    <input type="text" placeholder="Кол-во" class="custom-qty" style="flex: 1; margin:0;">
+                </div>
+            </div>
 
-                <button type="submit" class="main-btn">Отправить мой выбор</button>
-            </form>
-        </div>
+            <button type="submit" class="btn-gold" style="margin-top: 15px;">Отправить мой выбор</button>
+        </form>
+        <div id="loading" class="loading">Отправка данных...</div>
     </div>
 
-    <!-- Вкладка: Админ-панель -->
-    <div id="tabAdmin" class="tab-content">
-        <div class="card">
-            <h2>📊 Сводная таблица (Админ)</h2>
-            <p>Здесь вы видите общий список всех участников, можете проставлять цены и удалять лишнее.</p>
-            
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Имя</th>
-                            <th>Позиция / Продукт</th>
-                            <th>Количество</th>
-                            <th>Цена (₸)</th>
-                            <th>Действие</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminItemsList"></tbody>
-                </table>
-            </div>
+    <!-- Секретная админ-панель (скрыта, открывается по 10 кликам на заголовок) -->
+    <div class="card admin-section" id="adminSection">
+        <h2>🔒 Секретная панель организатора</h2>
+        <p style="color: #aaa;">Здесь отображается суммарное количество продуктов и подробная детализация по каждому участнику.</p>
+        
+        <div id="adminLoading" class="loading">Загрузка данных...</div>
 
-            <div class="total-box">
-                Общая стоимость поездки: <span id="totalAmount">0</span> ₸
-            </div>
+        <h3>📦 Общий список для закупки</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Продукт</th>
+                        <th>Общее количество</th>
+                        <th>Цена за всё (₸)</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryItemsList"></tbody>
+            </table>
         </div>
+
+        <div class="total-box">
+            Общая стоимость поездки: <span id="totalAmount">0</span> ₸
+        </div>
+
+        <h3 style="margin-top: 30px;">📋 Кто что просил (Детали)</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Имя</th>
+                        <th>Продукт</th>
+                        <th>Количество</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody id="rawItemsList"></tbody>
+            </table>
+        </div>
+
+        <button class="btn-danger" style="margin-top: 25px; width: 100%; padding: 10px;" onclick="closeAdminPanel()">Скрыть админ-панель</button>
     </div>
 
     <script>
@@ -109,12 +230,31 @@
         const CATALOG = {
             "🍖 Мясо и птица": ["Шашлык (баранина/свинина)", "Куриные крылышки / бедра", "Купаты / колбаски"],
             "🍅 Овощи и зелень": ["Помидоры", "Огурцы", "Зелень (укроп, петрушка)", "Лук репчатый"],
-            "🥤 Напитки": ["Питьевая вода (5л)", "Соки / Морс", "Газировка", "Алкоголь"],
+            "🥤 Напитки": ["Питьевая вода (5л)", "Соки / Морс", "Газировка (Кола и др.)", "Алкоголь"],
             "🧂 Соусы и специи": ["Кетчуп / Соус", "Майонез", "Соль / Специи"],
             "🪵 Разное": ["Уголь древесный", "Жидкость для розжига", "Одноразовая посуда", "Салфетки"]
         };
 
-        // Рендер каталога на форме
+        // Логика 10 кликов для секретной панели
+        let clickCount = 0;
+        const mainTitle = document.getElementById('mainTitle');
+        const adminSection = document.getElementById('adminSection');
+
+        mainTitle.addEventListener('click', () => {
+            clickCount++;
+            if (clickCount >= 10) {
+                clickCount = 0;
+                adminSection.style.display = 'block';
+                adminSection.scrollIntoView({ behavior: 'smooth' });
+                loadAdminData();
+            }
+        });
+
+        function closeAdminPanel() {
+            adminSection.style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         function renderCatalog() {
             const container = document.getElementById('catalogContainer');
             let html = '';
@@ -153,40 +293,148 @@
             });
         }
 
-        async function loadData() {
-            document.getElementById('loading').style.display = 'block';
+        async function loadAdminData() {
+            document.getElementById('adminLoading').style.display = 'block';
             const items = await fetchItems();
-            renderAdminTable(items);
-            document.getElementById('loading').style.display = 'none';
+            renderSummaryTable(items);
+            renderRawTable(items);
+            document.getElementById('adminLoading').style.display = 'none';
         }
 
-        function renderAdminTable(items) {
-            const tbody = document.getElementById('adminItemsList');
+        // Сводная таблица (суммарное количество)
+        function renderSummaryTable(items) {
+            const tbody = document.getElementById('summaryItemsList');
             tbody.innerHTML = '';
-            let total = 0;
+            let grandTotal = 0;
 
             if (items.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">Пока никто ничего не добавил.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Пока никто ничего не добавил.</td></tr>`;
+                document.getElementById('totalAmount').innerText = '0';
+                return;
+            }
+
+            const groups = {};
+            items.forEach((item) => {
+                const key = item.food.trim().toLowerCase();
+                if (!groups[key]) {
+                    groups[key] = {
+                        foodName: item.food,
+                        entries: [],
+                        totalPrice: 0
+                    };
+                }
+                groups[key].entries.push(item);
+                groups[key].totalPrice += Number(item.price || 0);
+            });
+
+            for (const [key, group] of Object.entries(groups)) {
+                let sumNum = 0;
+                let unit = '';
+                let canSum = true;
+
+                group.entries.forEach(entry => {
+                    const match = String(entry.quantity).trim().match(/^([\d.,]+)\s*(.*)$/);
+                    if (match) {
+                        const val = parseFloat(match[1].replace(',', '.'));
+                        const u = match[2].trim().toLowerCase();
+                        if (!isNaN(val)) {
+                            if (unit === '' || unit === u) {
+                                unit = u;
+                                sumNum += val;
+                            } else {
+                                canSum = false;
+                            }
+                        } else {
+                            canSum = false;
+                        }
+                    } else {
+                        canSum = false;
+                    }
+                });
+
+                let totalQtyDisplay = '';
+                if (canSum) {
+                    const formattedSum = Number.isInteger(sumNum) ? sumNum : sumNum.toFixed(1);
+                    totalQtyDisplay = `<b>${formattedSum} ${unit}</b>`;
+                } else {
+                    let parts = group.entries.map(e => e.quantity);
+                    totalQtyDisplay = `<b>${parts.join(', ')}</b>`;
+                }
+
+                grandTotal += group.totalPrice;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${escapeHtml(group.foodName)}</b></td>
+                    <td>${totalQtyDisplay}</td>
+                    <td>
+                        <input type="number" step="any" value="${group.totalPrice}" onchange="updateGroupPrice('${key}', this.value)" placeholder="₸">
+                    </td>
+                    <td>
+                        <button class="btn-danger" onclick="deleteGroup('${key}')">Удалить всё</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            document.getElementById('totalAmount').innerText = grandTotal.toFixed(2);
+        }
+
+        // Детальная таблица (кто что просил)
+        function renderRawTable(items) {
+            const tbody = document.getElementById('rawItemsList');
+            tbody.innerHTML = '';
+
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Нет записей.</td></tr>`;
+                return;
             }
 
             items.forEach((item, index) => {
-                total += Number(item.price || 0);
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><b>${escapeHtml(item.person)}</b></td>
                     <td>${escapeHtml(item.food)}</td>
                     <td>${escapeHtml(item.quantity)}</td>
                     <td>
-                        <input type="number" step="any" value="${item.price || 0}" style="width: 80px; padding: 4px; margin:0;" onchange="updatePrice(${index}, this.value)">
-                    </td>
-                    <td>
-                        <button class="btn-danger" onclick="deleteItem(${index})">Удалить</button>
+                        <button class="btn-danger" onclick="deleteSingleItem(${index})">Удалить</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
 
-            document.getElementById('totalAmount').innerText = total.toFixed(2);
+        async function updateGroupPrice(groupKey, newTotalPrice) {
+            const items = await fetchItems();
+            const priceVal = parseFloat(newTotalPrice) || 0;
+            let assigned = false;
+            items.forEach(item => {
+                if (item.food.trim().toLowerCase() === groupKey) {
+                    if (!assigned) {
+                        item.price = priceVal;
+                        assigned = true;
+                    } else {
+                        item.price = 0;
+                    }
+                }
+            });
+            await saveItems(items);
+            loadAdminData();
+        }
+
+        async function deleteGroup(groupKey) {
+            if (!confirm('Удалить эту позицию со всеми запросами?')) return;
+            const items = await fetchItems();
+            const remaining = items.filter(item => item.food.trim().toLowerCase() !== groupKey);
+            await saveItems(remaining);
+            loadAdminData();
+        }
+
+        async function deleteSingleItem(index) {
+            const items = await fetchItems();
+            items.splice(index, 1);
+            await saveItems(items);
+            loadAdminData();
         }
 
         // Отправка формы участником
@@ -197,102 +445,52 @@
 
             let newEntries = [];
 
-            // Сбор из каталога
             for (const [category, items] of Object.entries(CATALOG)) {
                 items.forEach((item, idx) => {
                     const checkbox = document.getElementById(`cat_${category}_${idx}`);
                     const qtyInput = document.getElementById(`qty_${category}_${idx}`);
                     if (checkbox && checkbox.checked) {
                         const quantity = qtyInput.value.trim() || '1 шт';
-                        newEntries.push({
-                            person: person,
-                            food: item,
-                            quantity: quantity,
-                            price: 0
-                        });
-                        // Сброс выбора
+                        newEntries.push({ person, food: item, quantity, price: 0 });
                         checkbox.checked = false;
                         qtyInput.value = '';
                     }
                 });
             }
 
-            // Сбор кастомных элементов
             const customNames = document.querySelectorAll('.custom-name');
             const customQtys = document.querySelectorAll('.custom-qty');
             for (let i = 0; i < customNames.length; i++) {
                 const name = customNames[i].value.trim();
                 const qty = customQtys[i].value.trim();
                 if (name) {
-                    newEntries.push({
-                        person: person,
-                        food: name,
-                        quantity: qty || '1 шт',
-                        price: 0
-                    });
+                    newEntries.push({ person, food: name, quantity: qty || '1 шт', price: 0 });
                     customNames[i].value = '';
                     customQtys[i].value = '';
                 }
             }
 
             if (newEntries.length === 0) {
-                alert('Пожалуйста, выберите что-то из каталога или введите свое!');
+                alert('Выберите что-то из каталога или введите свое!');
                 return;
             }
 
             document.getElementById('loading').style.display = 'block';
             const items = await fetchItems();
-            const updatedItems = items.concat(newEntries);
-            await saveItems(updatedItems);
+            await saveItems(items.concat(newEntries));
             
             document.getElementById('personName').value = '';
             document.getElementById('loading').style.display = 'none';
             
-            alert('Ваш список успешно добавлен!');
-            switchTab('admin'); // Перенаправляем в админку или общая таблица
-            loadData();
+            alert('Ваш список успешно отправлен!');
         });
-
-        async function updatePrice(index, price) {
-            const items = await fetchItems();
-            if (items[index]) {
-                items[index].price = parseFloat(price) || 0;
-                await saveItems(items);
-                loadData();
-            }
-        }
-
-        async function deleteItem(index) {
-            const items = await fetchItems();
-            items.splice(index, 1);
-            await saveItems(items);
-            loadData();
-        }
-
-        function switchTab(tabName) {
-            document.getElementById('tabForm').classList.remove('active');
-            document.getElementById('tabAdmin').classList.remove('active');
-            document.getElementById('btnTabForm').classList.remove('active');
-            document.getElementById('btnTabAdmin').classList.remove('active');
-
-            if (tabName === 'form') {
-                document.getElementById('tabForm').classList.add('active');
-                document.getElementById('btnTabForm').classList.add('active');
-            } else {
-                document.getElementById('tabAdmin').classList.add('active');
-                document.getElementById('btnTabAdmin').classList.add('active');
-                loadData();
-            }
-        }
 
         function escapeHtml(str) {
             if (!str) return '';
             return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
 
-        // Инициализация при загрузке страницы
         renderCatalog();
-        loadData();
     </script>
 </body>
 </html>
