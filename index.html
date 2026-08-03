@@ -246,6 +246,7 @@
         const CATALOG = {
             "🍖 Мясо и птица": ["Шашлык (баранина/свинина)", "Куриные крылышки / бедра", "Купаты / колбаски"],
             "🍅 Овощи и зелень": ["Помидоры", "Огурцы", "Зелень (укроп, петрушка)", "Лук репчатый"],
+            "🍻 К пиву и снеки": ["Чечил (сыр-косичка)", "Пивные колбаски / снеки", "Сухарики / Кириешки", "Чипсы", "Орешки (арахис, фисташки)", "Сушеная рыба / кальмары", "Чесночные гренки"],
             "🥤 Напитки": ["Питьевая вода (5л)", "Соки / Морс", "Газировка (Кола и др.)", "Алкоголь"],
             "🧂 Соусы и специи": ["Кетчуп / Соус", "Майонез", "Соль / Специи"],
             "🪵 Разное": ["Уголь древесный", "Жидкость для розжига", "Одноразовая посуда", "Салфетки"]
@@ -280,7 +281,7 @@
                         <div class="catalog-item">
                             <input type="checkbox" id="cat_${category}_${idx}" value="${item}">
                             <label for="cat_${category}_${idx}" style="flex: 1; cursor: pointer;">${item}</label>
-                            <input type="text" placeholder="Кол-во (напр. 3 кг)" id="qty_${category}_${idx}">
+                            <input type="text" placeholder="Кол-во (напр. 3 шт)" id="qty_${category}_${idx}">
                         </div>
                     `;
                 });
@@ -505,7 +506,7 @@
             await saveItems(items.concat(newEntries));
             
             document.getElementById('personName').value = '';
-            document.getElementById('customItemsContainer').innerHTML = ''; // Очищаем кастомные поля
+            document.getElementById('customItemsContainer').innerHTML = ''; 
             document.getElementById('loading').style.display = 'none';
             
             alert('Ваш список успешно отправлен!');
@@ -517,7 +518,6 @@
         }
 
         renderCatalog();
-        // Добавим сразу одну пустую строчку для удобства при загрузке
         addCustomRow();
     </script>
 </body>
