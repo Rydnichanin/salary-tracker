@@ -1,2104 +1,2281 @@
-<!DOCTYPE html><html lang="ru">
+<!DOCTYPE html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Еда на турбазу</title><style>
-    * {
-        box-sizing: border-box;
-    }
 
-    body {
-        background-color: #121212;
-        color: #e0e0e0;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        margin: 0;
-        padding: 15px;
-    }
+    <title>Еда на турбазу</title>
 
-    h1, h2, h3, h4 {
-        color: #d4af37;
-    }
-
-    .card {
-        background-color: #1a1a1a;
-        border: 1px solid rgba(212, 175, 55, 0.25);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-    }
-
-    input[type="text"],
-    input[type="number"] {
-        background-color: #242424;
-        border: 1px solid #444;
-        color: #fff;
-        padding: 10px;
-        border-radius: 6px;
-        width: 100%;
-        box-sizing: border-box;
-        font-size: 1rem;
-    }
-
-    input[type="text"]:focus,
-    input[type="number"]:focus {
-        border-color: #d4af37;
-        outline: none;
-        box-shadow: 0 0 5px rgba(212, 175, 55, 0.4);
-    }
-
-    button {
-        font-family: inherit;
-    }
-
-    button.btn-gold {
-        background: linear-gradient(135deg, #d4af37, #aa771c);
-        color: #121212;
-        font-weight: bold;
-        border: none;
-        padding: 14px 20px;
-        border-radius: 8px;
-        cursor: pointer;
-        width: 100%;
-        font-size: 1.1rem;
-        transition: 0.3s;
-        box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2);
-    }
-
-    button.btn-gold:hover {
-        background: linear-gradient(135deg, #f1c40f, #d4af37);
-        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
-    }
-
-    .btn-secondary {
-        background-color: #2a2a2a;
-        color: #d4af37;
-        border: 1px solid #d4af37;
-        padding: 8px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        font-weight: bold;
-        transition: 0.3s;
-        margin-bottom: 10px;
-    }
-
-    .btn-secondary:hover {
-        background-color: #333;
-        box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-        min-width: 650px;
-    }
-
-    th, td {
-        padding: 10px;
-        border: 1px solid #333;
-        text-align: left;
-        font-size: 0.9rem;
-    }
-
-    th {
-        background-color: #24200e;
-        color: #d4af37;
-    }
-
-    tr:nth-child(even) {
-        background-color: #161616;
-    }
-
-    .btn-danger {
-        background-color: #8b0000;
-        color: white;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.85rem;
-    }
-
-    .btn-danger:hover {
-        background-color: #a93226;
-    }
-
-    .total-box {
-        background-color: #24200e;
-        border-left: 5px solid #d4af37;
-        padding: 15px;
-        margin-top: 20px;
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #d4af37;
-        border-radius: 4px;
-    }
-
-    .admin-section {
-        display: none;
-        border: 2px dashed #d4af37;
-        margin-top: 30px;
-        background-color: #181818;
-    }
-
-    .catalog-category {
-        margin-bottom: 20px;
-        border-bottom: 1px solid #2a2a2a;
-        padding-bottom: 10px;
-    }
-
-    .catalog-category h4 {
-        margin: 5px 0 10px 0;
-        color: #e6c687;
-    }
-
-    .catalog-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 10px;
-        font-size: 0.95rem;
-    }
-
-    .catalog-item input[type="checkbox"] {
-        width: 22px;
-        height: 22px;
-        accent-color: #d4af37;
-        cursor: pointer;
-        flex-shrink: 0;
-    }
-
-    .catalog-item input[type="text"] {
-        width: 140px;
-        margin: 0;
-        padding: 6px;
-    }
-
-    .loading {
-        text-align: center;
-        color: #888;
-        font-style: italic;
-        margin-top: 15px;
-        display: none;
-    }
-
-    .main-title {
-        cursor: pointer;
-        user-select: none;
-        display: inline-block;
-    }
-
-    .click-hint {
-        font-size: 0.75rem;
-        color: #555;
-        margin-bottom: 15px;
-    }
-
-    .custom-row {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 10px;
-    }
-
-    .status {
-        display: none;
-        padding: 12px;
-        border-radius: 7px;
-        margin-top: 15px;
-        text-align: center;
-    }
-
-    .status.success {
-        display: block;
-        background: #173d1f;
-        border: 1px solid #2f8f46;
-        color: #8be09e;
-    }
-
-    .status.error {
-        display: block;
-        background: #3d1717;
-        border: 1px solid #8f2f2f;
-        color: #ff9999;
-    }
-
-    .empty-message {
-        text-align: center;
-        color: #777;
-        padding: 20px;
-    }
-
-    .record-date {
-        color: #888;
-        font-size: 0.8rem;
-    }
-
-    @media (max-width: 600px) {
-        body {
-            padding: 10px;
+    <style>
+        * {
+            box-sizing: border-box;
         }
 
-        .card {
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
             padding: 15px;
         }
 
+        h1, h2, h3, h4 {
+            color: #d4af37;
+        }
+
+        .card {
+            background-color: #1a1a1a;
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            background-color: #242424;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        input:focus {
+            border-color: #d4af37;
+            outline: none;
+            box-shadow: 0 0 5px rgba(212, 175, 55, 0.4);
+        }
+
+        button {
+            font-family: inherit;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #d4af37, #aa771c);
+            color: #121212;
+            font-weight: bold;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2);
+        }
+
+        .btn-gold:hover {
+            background: linear-gradient(135deg, #f1c40f, #d4af37);
+        }
+
+        .btn-secondary {
+            background-color: #2a2a2a;
+            color: #d4af37;
+            border: 1px solid #d4af37;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .btn-danger {
+            background-color: #8b0000;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-danger:hover {
+            background-color: #a93226;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            min-width: 700px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #333;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #24200e;
+            color: #d4af37;
+        }
+
+        tr:nth-child(even) {
+            background-color: #161616;
+        }
+
+        .total-box {
+            background-color: #24200e;
+            border-left: 5px solid #d4af37;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #d4af37;
+            border-radius: 4px;
+        }
+
+        .admin-section {
+            display: none;
+            border: 2px dashed #d4af37;
+            margin-top: 30px;
+            background-color: #181818;
+        }
+
+        .catalog-category {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #2a2a2a;
+            padding-bottom: 10px;
+        }
+
+        .catalog-category h4 {
+            margin: 5px 0 10px;
+            color: #e6c687;
+        }
+
         .catalog-item {
-            flex-wrap: wrap;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .catalog-item input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            accent-color: #d4af37;
+            cursor: pointer;
+            flex-shrink: 0;
         }
 
         .catalog-item label {
-            min-width: calc(100% - 40px);
+            flex: 1;
+            cursor: pointer;
         }
 
-        .catalog-item input[type="text"] {
-            width: 100%;
-            margin-left: 32px;
+        .catalog-qty {
+            width: 140px !important;
         }
 
         .custom-row {
-            flex-wrap: wrap;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
-        .custom-row input {
-            width: 100% !important;
-            flex: none !important;
+        .custom-name {
+            flex: 2;
         }
 
-        .custom-row button {
-            width: 100%;
-            padding: 8px !important;
+        .custom-qty {
+            flex: 1;
         }
-    }
-</style>
 
-</head><body><h1 class="main-title" id="mainTitle" title="Нажмите 10 раз">
-    🏕️ Еда на турбазу
-</h1>
-
-<div class="click-hint">
-    Соберите всё необходимое для отличного отдыха
-</div>
-
-<!-- ОСНОВНАЯ ФОРМА -->
-<div class="card">
-
-    <form id="turbazaForm">
-
-        <h3>Ваши данные</h3>
-
-        <label>
-            <b>Ваше имя:</b>
-        </label>
-
-        <input
-            type="text"
-            id="personName"
-            required
-            placeholder="Например, Алексей"
-        >
-
-        <h3>1. Выберите из каталога:</h3>
-
-        <div id="catalogContainer"></div>
-
-        <h3>2. Добавить свое:</h3>
-
-        <div id="customItemsContainer"></div>
-
-        <button
-            type="button"
-            class="btn-secondary"
-            onclick="addCustomRow()"
-        >
-            + Добавить еще позицию
-        </button>
-
-        <button
-            type="submit"
-            class="btn-gold"
-            style="margin-top: 15px;"
-        >
-            Отправить мой выбор
-        </button>
-
-    </form>
-
-    <div id="loading" class="loading">
-        Отправка данных...
-    </div>
-
-    <div id="statusMessage" class="status"></div>
-
-</div>
-
-
-<!-- АДМИНКА -->
-
-<div class="card admin-section" id="adminSection">
-
-    <h2>🔒 Панель организатора</h2>
-
-    <p style="color: #aaa;">
-        Здесь можно посмотреть общий список, изменить количество,
-        установить цену и удалить позиции.
-    </p>
-
-    <div id="adminLoading" class="loading">
-        Загрузка данных...
-    </div>
-
-
-    <h3>📦 Общий список и расчет цены</h3>
-
-    <div style="overflow-x: auto;">
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Продукт</th>
-                    <th>Итоговое количество</th>
-                    <th>Цена за ед. (₸)</th>
-                    <th>Итого (₸)</th>
-                    <th>Действие</th>
-                </tr>
-            </thead>
-
-            <tbody id="summaryItemsList"></tbody>
-
-        </table>
-
-    </div>
-
-
-    <div class="total-box">
-        Общая стоимость поездки:
-        <span id="totalAmount">0</span> ₸
-    </div>
-
-
-    <h3 style="margin-top: 30px;">
-        📋 Кто что просил
-    </h3>
-
-    <div style="overflow-x: auto;">
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Имя</th>
-                    <th>Продукт</th>
-                    <th>Количество</th>
-                    <th>Дата</th>
-                    <th>Действие</th>
-                </tr>
-            </thead>
-
-            <tbody id="rawItemsList"></tbody>
-
-        </table>
-
-    </div>
-
-
-    <button
-        class="btn-danger"
-        style="margin-top: 25px; width: 100%; padding: 10px;"
-        onclick="closeAdminPanel()"
-    >
-        Скрыть админ-панель
-    </button>
-
-</div>
-
-<script>
-
-/* =========================================================
-   НАСТРОЙКИ KVDB
-   ========================================================= */
-
-/*
-    ТВОЙ BUCKET
-*/
-const BUCKET_ID = "sergey_turbaza_food_2026";
-
-/*
-    Все заявки будут храниться с этим префиксом.
-*/
-const KEY_PREFIX = "turbaza:";
-
-/*
-    90 дней.
-
-    Если твой тариф позволяет постоянные ключи,
-    можно заменить на 0.
-
-    На бесплатном тарифе KVdb постоянное хранение
-    может быть недоступно.
-*/
-const STORAGE_TTL = 7776000;
-
-
-/* =========================================================
-   КАТАЛОГ
-   ========================================================= */
-
-const CATALOG = {
-
-    "🍖 Мясо и птица": [
-        "Шашлык (баранина/свинина)",
-        "Куриные крылышки / бедра",
-        "Купаты / колбаски"
-    ],
-
-    "🍅 Овощи и зелень": [
-        "Помидоры",
-        "Огурцы",
-        "Зелень (укроп, петрушка)",
-        "Лук репчатый"
-    ],
-
-    "🥨 Снеки": [
-        "Чечил (сыр-косичка)",
-        "Пивные колбаски / снеки",
-        "Сухарики / Кириешки",
-        "Чипсы",
-        "Орешки (арахис, фисташки)",
-        "Сушеная рыба / кальмары",
-        "Чесночные гренки"
-    ],
-
-    "🥤 Напитки": [
-        "Питьевая вода (5л)",
-        "Соки / Морс",
-        "Газировка"
-    ],
-
-    "🧂 Соусы и специи": [
-        "Кетчуп / Соус",
-        "Майонез",
-        "Соль / Специи"
-    ],
-
-    "🪵 Разное": [
-        "Уголь древесный",
-        "Жидкость для розжига",
-        "Одноразовая посуда",
-        "Салфетки"
-    ]
-
-};
-
-
-/* =========================================================
-   АДМИНКА
-   ========================================================= */
-
-let clickCount = 0;
-
-const mainTitle = document.getElementById("mainTitle");
-const adminSection = document.getElementById("adminSection");
-
-mainTitle.addEventListener("click", () => {
-
-    clickCount++;
-
-    if (clickCount >= 10) {
-
-        clickCount = 0;
-
-        adminSection.style.display = "block";
-
-        adminSection.scrollIntoView({
-            behavior: "smooth"
-        });
-
-        loadAdminData();
-    }
-
-});
-
-
-function closeAdminPanel() {
-
-    adminSection.style.display = "none";
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-
-}
-
-
-/* =========================================================
-   ОТОБРАЖЕНИЕ КАТАЛОГА
-   ========================================================= */
-
-function renderCatalog() {
-
-    const container =
-        document.getElementById("catalogContainer");
-
-    let html = "";
-
-    for (const [category, items] of Object.entries(CATALOG)) {
-
-        html += `
-            <div class="catalog-category">
-
-                <h4>${escapeHtml(category)}</h4>
-        `;
-
-        items.forEach((item, idx) => {
-
-            const checkboxId =
-                `cat_${idx}_${Math.random().toString(36).substring(2, 8)}`;
-
-            html += `
-                <div class="catalog-item">
-
-                    <input
-                        type="checkbox"
-                        id="${checkboxId}"
-                        data-food="${escapeHtml(item)}"
-                    >
-
-                    <label
-                        for="${checkboxId}"
-                        style="flex:1; cursor:pointer;"
-                    >
-                        ${escapeHtml(item)}
-                    </label>
-
-                    <input
-                        type="text"
-                        placeholder="Кол-во"
-                        class="catalog-qty"
-                        data-food="${escapeHtml(item)}"
-                    >
-
-                </div>
-            `;
-        });
-
-        html += `
-            </div>
-        `;
-    }
-
-    container.innerHTML = html;
-}
-
-
-/* =========================================================
-   ДОБАВЛЕНИЕ СВОЕЙ ПОЗИЦИИ
-   ========================================================= */
-
-function addCustomRow() {
-
-    const container =
-        document.getElementById("customItemsContainer");
-
-    const row =
-        document.createElement("div");
-
-    row.className = "custom-row";
-
-    row.innerHTML = `
-
-        <input
-            type="text"
-            placeholder="Название, например Лаваш"
-            class="custom-name"
-            style="flex:2; margin:0;"
-        >
-
-        <input
-            type="text"
-            placeholder="Кол-во"
-            class="custom-qty"
-            style="flex:1; margin:0;"
-        >
-
-        <button
-            type="button"
-            class="btn-danger"
-            style="padding:0 10px;"
-            onclick="this.parentElement.remove()"
-        >
-            ✕
-        </button>
-
-    `;
-
-    container.appendChild(row);
-}
-
-
-/* =========================================================
-   СОЗДАНИЕ УНИКАЛЬНОГО КЛЮЧА
-   ========================================================= */
-
-function createRecordKey() {
-
-    const timestamp =
-        Date.now().toString(36);
-
-    const random =
-        Math.random()
-            .toString(36)
-            .substring(2, 10);
-
-    return KEY_PREFIX + timestamp + ":" + random;
-}
-
-
-/* =========================================================
-   URL ДЛЯ KVDB
-   ========================================================= */
-
-function getKeyUrl(key) {
-
-    return `
-        https://kvdb.io/
-        ${BUCKET_ID}/
-        ${encodeURIComponent(key)}
-    `.replace(/\s+/g, "");
-
-}
-
-
-/* =========================================================
-   ПОЛУЧЕНИЕ ВСЕХ КЛЮЧЕЙ
-   ========================================================= */
-
-async function getAllKeys() {
-
-    const url =
-        `https://kvdb.io/${BUCKET_ID}/?prefix=${encodeURIComponent(KEY_PREFIX)}&format=json`;
-
-    const response =
-        await fetch(url, {
-            cache: "no-store"
-        });
-
-    if (!response.ok) {
-
-        throw new Error(
-            `Не удалось получить список записей. Код: ${response.status}`
-        );
-
-    }
-
-    const data =
-        await response.json();
-
-    /*
-        KVdb возвращает массив ключей:
-        ["turbaza:abc", "turbaza:def"]
-    */
-
-    if (!Array.isArray(data)) {
-        return [];
-    }
-
-    return data;
-
-}
-
-
-/* =========================================================
-   ПОЛУЧЕНИЕ ОДНОЙ ЗАПИСИ
-   ========================================================= */
-
-async function getRecord(key) {
-
-    const response =
-        await fetch(
-            getKeyUrl(key),
-            {
-                cache: "no-store"
+        .loading {
+            display: none;
+            text-align: center;
+            color: #aaa;
+            margin-top: 15px;
+        }
+
+        .main-title {
+            cursor: pointer;
+            user-select: none;
+            display: inline-block;
+        }
+
+        .click-hint {
+            font-size: 0.75rem;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .status {
+            display: none;
+            padding: 12px;
+            border-radius: 7px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .status.success {
+            display: block;
+            background: #173d1f;
+            border: 1px solid #2f8f46;
+            color: #8be09e;
+        }
+
+        .status.error {
+            display: block;
+            background: #3d1717;
+            border: 1px solid #8f2f2f;
+            color: #ff9999;
+        }
+
+        .empty {
+            text-align: center;
+            color: #777;
+            padding: 20px;
+        }
+
+        .date {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 600px) {
+
+            body {
+                padding: 10px;
             }
-        );
 
-    if (response.status === 404) {
-        return null;
-    }
+            .card {
+                padding: 15px;
+            }
 
-    if (!response.ok) {
+            .catalog-item {
+                flex-wrap: wrap;
+            }
 
-        throw new Error(
-            `Ошибка получения записи: ${response.status}`
-        );
+            .catalog-item label {
+                min-width: calc(100% - 40px);
+            }
 
-    }
+            .catalog-qty {
+                width: 100% !important;
+                margin-left: 32px;
+            }
 
-    const text =
-        await response.text();
+            .custom-row {
+                flex-wrap: wrap;
+            }
 
-    if (!text.trim()) {
-        return null;
-    }
+            .custom-row input {
+                flex: none !important;
+                width: 100%;
+            }
 
-    try {
-
-        return JSON.parse(text);
-
-    } catch (e) {
-
-        console.error(
-            "Некорректный JSON:",
-            text
-        );
-
-        return null;
-    }
-
-}
-
-
-/* =========================================================
-   ПОЛУЧЕНИЕ ВСЕХ ЗАПИСЕЙ
-   ========================================================= */
-
-async function fetchItems() {
-
-    try {
-
-        const keys =
-            await getAllKeys();
-
-        if (keys.length === 0) {
-            return [];
+            .custom-row button {
+                width: 100%;
+                padding: 9px;
+            }
         }
+    </style>
+</head>
 
-        const records =
-            await Promise.all(
-                keys.map(key => getRecord(key))
+<body>
+
+    <h1
+        class="main-title"
+        id="mainTitle"
+        title="Нажмите 10 раз"
+    >
+        🏕️ Еда на турбазу
+    </h1>
+
+    <div class="click-hint">
+        Соберите всё необходимое для отличного отдыха
+    </div>
+
+
+    <!-- =========================
+         ФОРМА УЧАСТНИКА
+    ========================== -->
+
+    <div class="card">
+
+        <form id="turbazaForm">
+
+            <h3>Ваши данные</h3>
+
+            <label>
+                <b>Ваше имя:</b>
+            </label>
+
+            <input
+                type="text"
+                id="personName"
+                required
+                placeholder="Например, Алексей"
+            >
+
+
+            <h3>1. Выберите из каталога:</h3>
+
+            <div id="catalogContainer"></div>
+
+
+            <h3>2. Добавить своё:</h3>
+
+            <div id="customItemsContainer"></div>
+
+            <button
+                type="button"
+                class="btn-secondary"
+                onclick="addCustomRow()"
+            >
+                + Добавить еще позицию
+            </button>
+
+
+            <button
+                type="submit"
+                class="btn-gold"
+                style="margin-top:15px"
+            >
+                Отправить мой выбор
+            </button>
+
+        </form>
+
+
+        <div
+            id="loading"
+            class="loading"
+        >
+            Сохранение...
+        </div>
+
+
+        <div
+            id="status"
+            class="status"
+        ></div>
+
+    </div>
+
+
+    <!-- =========================
+         АДМИНКА
+    ========================== -->
+
+    <div
+        class="card admin-section"
+        id="adminSection"
+    >
+
+        <h2>🔒 Панель организатора</h2>
+
+        <p style="color:#aaa">
+            Здесь можно посмотреть общий список,
+            изменить количество, установить цену
+            и удалить позиции.
+        </p>
+
+
+        <div
+            id="adminLoading"
+            class="loading"
+        >
+            Загрузка данных...
+        </div>
+
+
+        <h3>
+            📦 Общий список
+        </h3>
+
+
+        <div style="overflow-x:auto">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Продукт
+                        </th>
+
+                        <th>
+                            Итоговое количество
+                        </th>
+
+                        <th>
+                            Цена за ед. (₸)
+                        </th>
+
+                        <th>
+                            Итого (₸)
+                        </th>
+
+                        <th>
+                            Действие
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody
+                    id="summaryItemsList"
+                ></tbody>
+
+            </table>
+
+        </div>
+
+
+        <div class="total-box">
+
+            Общая стоимость:
+            <span id="totalAmount">
+                0
+            </span>
+            ₸
+
+        </div>
+
+
+        <h3 style="margin-top:30px">
+            📋 Кто что просил
+        </h3>
+
+
+        <div style="overflow-x:auto">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Имя
+                        </th>
+
+                        <th>
+                            Продукт
+                        </th>
+
+                        <th>
+                            Количество
+                        </th>
+
+                        <th>
+                            Дата
+                        </th>
+
+                        <th>
+                            Действие
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody
+                    id="rawItemsList"
+                ></tbody>
+
+            </table>
+
+        </div>
+
+
+        <button
+            class="btn-danger"
+            style="
+                margin-top:25px;
+                width:100%;
+                padding:10px;
+            "
+            onclick="closeAdminPanel()"
+        >
+            Скрыть админ-панель
+        </button>
+
+    </div>
+
+
+    <!-- =========================
+         FIREBASE
+    ========================== -->
+
+    <script type="module">
+
+        import {
+            initializeApp
+        } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            getDocs,
+            updateDoc,
+            deleteDoc,
+            doc
+        } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+
+        /* =========================================
+           FIREBASE CONFIG
+        ========================================= */
+
+        const firebaseConfig = {
+
+            apiKey:
+                "AIzaSyAsd0YvAZ85-UUPAXWpdW7LRjnFTtLV-k4",
+
+            authDomain:
+                "test-6a07f.firebaseapp.com",
+
+            projectId:
+                "test-6a07f",
+
+            storageBucket:
+                "test-6a07f.firebasestorage.app",
+
+            messagingSenderId:
+                "875462676883",
+
+            appId:
+                "1:875462676883:web:5cb0b75c92e1247482d866"
+        };
+
+
+        const app =
+            initializeApp(firebaseConfig);
+
+
+        const db =
+            getFirestore(app);
+
+
+        /* =========================================
+           КОЛЛЕКЦИЯ
+        ========================================= */
+
+        const ordersCollection =
+            collection(
+                db,
+                "turbaza_orders"
             );
 
-        const result = [];
 
-        records.forEach(record => {
+        /* =========================================
+           КАТАЛОГ
+        ========================================= */
 
-            if (!record) return;
+        const CATALOG = {
 
-            /*
-                Один ключ содержит одну заявку.
-                Внутри может быть несколько продуктов.
-            */
+            "🍖 Мясо и птица": [
+                "Шашлык (баранина/свинина)",
+                "Куриные крылышки / бедра",
+                "Купаты / колбаски"
+            ],
 
-            if (Array.isArray(record.items)) {
+            "🍅 Овощи и зелень": [
+                "Помидоры",
+                "Огурцы",
+                "Зелень (укроп, петрушка)",
+                "Лук репчатый"
+            ],
 
-                record.items.forEach(item => {
+            "🥨 Снеки": [
+                "Чечил (сыр-косичка)",
+                "Пивные колбаски / снеки",
+                "Сухарики / Кириешки",
+                "Чипсы",
+                "Орешки (арахис, фисташки)",
+                "Сушеная рыба / кальмары",
+                "Чесночные гренки"
+            ],
 
-                    result.push({
+            "🥤 Напитки": [
+                "Питьевая вода (5л)",
+                "Соки / Морс",
+                "Газировка"
+            ],
 
-                        ...item,
+            "🧂 Соусы и специи": [
+                "Кетчуп / Соус",
+                "Майонез",
+                "Соль / Специи"
+            ],
 
-                        recordKey: record.recordKey,
-                        person: record.person,
-                        createdAt: record.createdAt
+            "🪵 Разное": [
+                "Уголь древесный",
+                "Жидкость для розжига",
+                "Одноразовая посуда",
+                "Салфетки"
+            ]
 
-                    });
+        };
+
+
+        /* =========================================
+           ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        ========================================= */
+
+        function escapeHtml(value) {
+
+            if (
+                value === null ||
+                value === undefined
+            ) {
+                return "";
+            }
+
+            return String(value)
+
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+
+        function money(value) {
+
+            return Number(value || 0)
+                .toLocaleString(
+                    "ru-RU",
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }
+                );
+
+        }
+
+
+        function showStatus(
+            text,
+            type
+        ) {
+
+            const box =
+                document.getElementById(
+                    "status"
+                );
+
+            box.textContent =
+                text;
+
+            box.className =
+                "status " + type;
+
+            setTimeout(() => {
+
+                box.className =
+                    "status";
+
+            }, 5000);
+
+        }
+
+
+        /* =========================================
+           КАТАЛОГ
+        ========================================= */
+
+        function renderCatalog() {
+
+            const container =
+                document.getElementById(
+                    "catalogContainer"
+                );
+
+            let html = "";
+
+            for (
+                const [category, items]
+                of Object.entries(CATALOG)
+            ) {
+
+                html += `
+                    <div class="catalog-category">
+
+                        <h4>
+                            ${escapeHtml(category)}
+                        </h4>
+                `;
+
+
+                items.forEach(item => {
+
+                    html += `
+
+                        <div class="catalog-item">
+
+                            <input
+                                type="checkbox"
+                                class="food-checkbox"
+                                data-food="${escapeHtml(item)}"
+                            >
+
+                            <label>
+                                ${escapeHtml(item)}
+                            </label>
+
+                            <input
+                                type="text"
+                                class="catalog-qty"
+                                data-food="${escapeHtml(item)}"
+                                placeholder="Кол-во"
+                            >
+
+                        </div>
+
+                    `;
 
                 });
 
+
+                html += `
+                    </div>
+                `;
+
             }
 
-        });
 
-        return result;
-
-    } catch (error) {
-
-        console.error(
-            "Ошибка загрузки:",
-            error
-        );
-
-        showStatus(
-            "Ошибка загрузки данных: " +
-            error.message,
-            "error"
-        );
-
-        return [];
-    }
-
-}
-
-
-/* =========================================================
-   СОХРАНЕНИЕ ОДНОЙ ЗАЯВКИ
-   ========================================================= */
-
-async function saveRecord(record) {
-
-    const key =
-        record.recordKey || createRecordKey();
-
-    record.recordKey = key;
-
-    const url =
-        getKeyUrl(key) +
-        `?ttl=${STORAGE_TTL}`;
-
-    const response =
-        await fetch(
-            url,
-            {
-                method: "PUT",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body:
-                    JSON.stringify(record)
-            }
-        );
-
-    if (!response.ok) {
-
-        const errorText =
-            await response.text();
-
-        throw new Error(
-            `KVdb ошибка ${response.status}: ${errorText}`
-        );
-
-    }
-
-    return true;
-
-}
-
-
-/* =========================================================
-   УДАЛЕНИЕ ЗАПИСИ
-   ========================================================= */
-
-async function deleteRecord(key) {
-
-    const response =
-        await fetch(
-            getKeyUrl(key),
-            {
-                method: "DELETE"
-            }
-        );
-
-    if (!response.ok &&
-        response.status !== 404) {
-
-        throw new Error(
-            `Ошибка удаления: ${response.status}`
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   ЗАГРУЗКА АДМИНКИ
-   ========================================================= */
-
-async function loadAdminData() {
-
-    const loader =
-        document.getElementById(
-            "adminLoading"
-        );
-
-    loader.style.display = "block";
-
-    try {
-
-        const items =
-            await fetchItems();
-
-        renderSummaryTable(items);
-
-        renderRawTable(items);
-
-    } catch (error) {
-
-        console.error(error);
-
-        showStatus(
-            error.message,
-            "error"
-        );
-
-    } finally {
-
-        loader.style.display = "none";
-
-    }
-
-}
-
-
-/* =========================================================
-   ОБЩАЯ ТАБЛИЦА
-   ========================================================= */
-
-function renderSummaryTable(items) {
-
-    const tbody =
-        document.getElementById(
-            "summaryItemsList"
-        );
-
-    tbody.innerHTML = "";
-
-    let grandTotal = 0;
-
-    if (items.length === 0) {
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5"
-                    class="empty-message">
-                    Пока никто ничего не добавил.
-                </td>
-            </tr>
-        `;
-
-        document.getElementById(
-            "totalAmount"
-        ).innerText = "0";
-
-        return;
-    }
-
-
-    /*
-        Группируем продукты.
-    */
-
-    const groups = {};
-
-
-    items.forEach(item => {
-
-        const key =
-            item.food
-                .trim()
-                .toLowerCase();
-
-        if (!groups[key]) {
-
-            groups[key] = {
-
-                foodName: item.food,
-
-                entries: [],
-
-                unitPrice:
-                    Number(item.unit_price) || 0,
-
-                overrideQuantity:
-                    item.override_quantity ??
-                    null
-
-            };
-
-        }
-
-        groups[key].entries.push(item);
-
-
-        if (item.unit_price !== undefined) {
-
-            groups[key].unitPrice =
-                Number(item.unit_price) || 0;
+            container.innerHTML =
+                html;
 
         }
 
 
-        if (
-            item.override_quantity !== undefined &&
-            item.override_quantity !== null
-        ) {
+        /* =========================================
+           ДОБАВИТЬ СВОЮ ПОЗИЦИЮ
+        ========================================= */
 
-            groups[key].overrideQuantity =
-                item.override_quantity;
+        window.addCustomRow =
+            function() {
 
-        }
-
-    });
-
-
-    Object.entries(groups)
-        .forEach(([groupKey, group]) => {
-
-            let sumNum = 0;
-
-            let unit = "";
-
-            let canSum = true;
-
-
-            group.entries.forEach(entry => {
-
-                const match =
-                    String(entry.quantity)
-                        .trim()
-                        .match(
-                            /^([\d.,]+)\s*(.*)$/
-                        );
-
-                if (!match) {
-
-                    canSum = false;
-                    return;
-
-                }
-
-
-                const val =
-                    parseFloat(
-                        match[1]
-                            .replace(",", ".")
+                const container =
+                    document.getElementById(
+                        "customItemsContainer"
                     );
 
-                const currentUnit =
-                    match[2]
-                        .trim()
-                        .toLowerCase();
+
+                const row =
+                    document.createElement(
+                        "div"
+                    );
 
 
-                if (isNaN(val)) {
-
-                    canSum = false;
-                    return;
-
-                }
+                row.className =
+                    "custom-row";
 
 
-                if (
-                    unit === "" ||
-                    unit === currentUnit
-                ) {
-
-                    unit = currentUnit;
-
-                    sumNum += val;
-
-                } else {
-
-                    canSum = false;
-
-                }
-
-            });
-
-
-            let displayQuantity;
-
-
-            if (
-                group.overrideQuantity !== null &&
-                group.overrideQuantity !== undefined
-            ) {
-
-                displayQuantity =
-                    group.overrideQuantity;
-
-            } else if (canSum) {
-
-                displayQuantity =
-                    Number.isInteger(sumNum)
-                        ? sumNum +
-                          (unit ? " " + unit : "")
-                        : sumNum.toFixed(1) +
-                          (unit ? " " + unit : "");
-
-            } else {
-
-                displayQuantity =
-                    group.entries
-                        .map(e => e.quantity)
-                        .join(", ");
-
-            }
-
-
-            let currentNum =
-                sumNum;
-
-
-            if (
-                group.overrideQuantity !== null &&
-                group.overrideQuantity !== undefined
-            ) {
-
-                const matchOverride =
-                    String(
-                        group.overrideQuantity
-                    )
-                    .trim()
-                    .match(/^([\d.,]+)/);
-
-
-                if (matchOverride) {
-
-                    const parsed =
-                        parseFloat(
-                            matchOverride[1]
-                                .replace(",", ".")
-                        );
-
-                    if (!isNaN(parsed)) {
-                        currentNum = parsed;
-                    }
-
-                }
-
-            } else if (!canSum) {
-
-                currentNum = 0;
-
-            }
-
-
-            const rowTotal =
-                currentNum *
-                group.unitPrice;
-
-
-            grandTotal += rowTotal;
-
-
-            const tr =
-                document.createElement("tr");
-
-
-            tr.innerHTML = `
-
-                <td>
-                    <b>
-                        ${escapeHtml(
-                            group.foodName
-                        )}
-                    </b>
-                </td>
-
-                <td>
+                row.innerHTML = `
 
                     <input
                         type="text"
-                        value="${escapeHtml(
-                            displayQuantity
-                        )}"
-                        onchange="updateGroupQuantity(
-                            '${escapeJs(groupKey)}',
-                            this.value
-                        )"
-                        placeholder="Общее количество"
+                        class="custom-name"
+                        placeholder="Название, например Лаваш"
                     >
-
-                </td>
-
-                <td>
 
                     <input
-                        type="number"
-                        step="any"
-                        value="${group.unitPrice || ""}"
-                        onchange="updateGroupUnitPrice(
-                            '${escapeJs(groupKey)}',
-                            this.value
-                        )"
-                        placeholder="За ед. ₸"
+                        type="text"
+                        class="custom-qty"
+                        placeholder="Кол-во"
                     >
-
-                </td>
-
-                <td>
-
-                    <b>
-                        ${formatMoney(rowTotal)} ₸
-                    </b>
-
-                </td>
-
-                <td>
 
                     <button
+                        type="button"
                         class="btn-danger"
-                        onclick="deleteGroup(
-                            '${escapeJs(groupKey)}'
-                        )"
                     >
-                        Удалить всё
+                        ✕
                     </button>
 
-                </td>
+                `;
 
-            `;
 
-            tbody.appendChild(tr);
+                row.querySelector(
+                    "button"
+                ).onclick =
+                    () => row.remove();
 
-        });
 
-
-    document.getElementById(
-        "totalAmount"
-    ).innerText =
-        formatMoney(grandTotal);
-
-}
-
-
-/* =========================================================
-   ТАБЛИЦА "КТО ЧТО ПРОСИЛ"
-   ========================================================= */
-
-function renderRawTable(items) {
-
-    const tbody =
-        document.getElementById(
-            "rawItemsList"
-        );
-
-    tbody.innerHTML = "";
-
-
-    if (items.length === 0) {
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5"
-                    class="empty-message">
-                    Нет записей.
-                </td>
-            </tr>
-        `;
-
-        return;
-
-    }
-
-
-    items.forEach(item => {
-
-        const tr =
-            document.createElement("tr");
-
-
-        let dateText = "-";
-
-
-        if (item.createdAt) {
-
-            try {
-
-                dateText =
-                    new Date(
-                        item.createdAt
-                    ).toLocaleString(
-                        "ru-RU"
-                    );
-
-            } catch (e) {}
-
-        }
-
-
-        tr.innerHTML = `
-
-            <td>
-                <b>
-                    ${escapeHtml(
-                        item.person
-                    )}
-                </b>
-            </td>
-
-            <td>
-                ${escapeHtml(
-                    item.food
-                )}
-            </td>
-
-            <td>
-                ${escapeHtml(
-                    item.quantity
-                )}
-            </td>
-
-            <td>
-                <span class="record-date">
-                    ${escapeHtml(
-                        dateText
-                    )}
-                </span>
-            </td>
-
-            <td>
-
-                <button
-                    class="btn-danger"
-                    onclick="deleteSingleItem(
-                        '${escapeJs(
-                            item.recordKey
-                        )}'
-                    )"
-                >
-                    Удалить
-                </button>
-
-            </td>
-
-        `;
-
-        tbody.appendChild(tr);
-
-    });
-
-}
-
-
-/* =========================================================
-   ИЗМЕНЕНИЕ ЦЕНЫ
-   ========================================================= */
-
-async function updateGroupUnitPrice(
-    groupKey,
-    newUnitPrice
-) {
-
-    try {
-
-        const price =
-            parseFloat(
-                String(newUnitPrice)
-                    .replace(",", ".")
-            ) || 0;
-
-
-        const keys =
-            await getAllKeys();
-
-
-        for (const key of keys) {
-
-            const record =
-                await getRecord(key);
-
-            if (!record ||
-                !Array.isArray(record.items)) {
-                continue;
-            }
-
-
-            let changed = false;
-
-
-            record.items.forEach(item => {
-
-                if (
-                    item.food
-                        .trim()
-                        .toLowerCase() ===
-                    groupKey
-                ) {
-
-                    item.unit_price =
-                        price;
-
-                    changed = true;
-
-                }
-
-            });
-
-
-            if (changed) {
-
-                await saveRecord(record);
-
-            }
-
-        }
-
-
-        await loadAdminData();
-
-    } catch (error) {
-
-        console.error(error);
-
-        showStatus(
-            "Ошибка сохранения цены: " +
-            error.message,
-            "error"
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   ИЗМЕНЕНИЕ ОБЩЕГО КОЛИЧЕСТВА
-   ========================================================= */
-
-async function updateGroupQuantity(
-    groupKey,
-    newQuantity
-) {
-
-    try {
-
-        const quantity =
-            String(newQuantity)
-                .trim();
-
-
-        const keys =
-            await getAllKeys();
-
-
-        for (const key of keys) {
-
-            const record =
-                await getRecord(key);
-
-            if (!record ||
-                !Array.isArray(record.items)) {
-                continue;
-            }
-
-
-            let changed = false;
-
-
-            record.items.forEach(item => {
-
-                if (
-                    item.food
-                        .trim()
-                        .toLowerCase() ===
-                    groupKey
-                ) {
-
-                    item.override_quantity =
-                        quantity;
-
-                    changed = true;
-
-                }
-
-            });
-
-
-            if (changed) {
-
-                await saveRecord(record);
-
-            }
-
-        }
-
-
-        await loadAdminData();
-
-    } catch (error) {
-
-        console.error(error);
-
-        showStatus(
-            "Ошибка сохранения количества: " +
-            error.message,
-            "error"
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   УДАЛИТЬ ВСЮ ПОЗИЦИЮ
-   ========================================================= */
-
-async function deleteGroup(groupKey) {
-
-    if (
-        !confirm(
-            "Удалить эту позицию со всеми запросами?"
-        )
-    ) {
-        return;
-    }
-
-
-    try {
-
-        const keys =
-            await getAllKeys();
-
-
-        for (const key of keys) {
-
-            const record =
-                await getRecord(key);
-
-            if (!record ||
-                !Array.isArray(record.items)) {
-                continue;
-            }
-
-
-            const oldLength =
-                record.items.length;
-
-
-            record.items =
-                record.items.filter(
-                    item =>
-                        item.food
-                            .trim()
-                            .toLowerCase() !==
-                        groupKey
+                container.appendChild(
+                    row
                 );
 
+            };
 
-            if (
-                record.items.length !==
-                oldLength
-            ) {
 
-                if (
-                    record.items.length === 0
-                ) {
+        /* =========================================
+           ОТПРАВКА ЗАЯВКИ
+        ========================================= */
 
-                    await deleteRecord(
-                        key
-                    );
+        document
+            .getElementById("turbazaForm")
+            .addEventListener(
+                "submit",
+                async function(e) {
 
-                } else {
+                    e.preventDefault();
 
-                    await saveRecord(
-                        record
-                    );
 
-                }
+                    const person =
+                        document
+                            .getElementById(
+                                "personName"
+                            )
+                            .value
+                            .trim();
 
-            }
 
-        }
+                    if (!person) {
 
-
-        await loadAdminData();
-
-    } catch (error) {
-
-        console.error(error);
-
-        showStatus(
-            "Ошибка удаления: " +
-            error.message,
-            "error"
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   УДАЛИТЬ ОДНУ ЗАЯВКУ
-   ========================================================= */
-
-async function deleteSingleItem(
-    recordKey,
-    itemIndex
-) {
-
-    if (
-        !confirm(
-            "Удалить эту заявку?"
-        )
-    ) {
-        return;
-    }
-
-
-    try {
-
-        const record =
-            await getRecord(
-                recordKey
-            );
-
-
-        if (!record) {
-
-            await loadAdminData();
-
-            return;
-
-        }
-
-
-        /*
-            Если в записи несколько продуктов,
-            удаляем конкретный продукт.
-
-            Если itemIndex не передан,
-            для совместимости удаляем запись.
-        */
-
-        if (
-            typeof itemIndex !==
-            "number"
-        ) {
-
-            await deleteRecord(
-                recordKey
-            );
-
-        } else {
-
-            record.items.splice(
-                itemIndex,
-                1
-            );
-
-
-            if (
-                record.items.length === 0
-            ) {
-
-                await deleteRecord(
-                    recordKey
-                );
-
-            } else {
-
-                await saveRecord(
-                    record
-                );
-
-            }
-
-        }
-
-
-        await loadAdminData();
-
-    } catch (error) {
-
-        console.error(error);
-
-        showStatus(
-            "Ошибка удаления: " +
-            error.message,
-            "error"
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   ОТПРАВКА ФОРМЫ
-   ========================================================= */
-
-document
-    .getElementById("turbazaForm")
-    .addEventListener(
-        "submit",
-        async function(e) {
-
-            e.preventDefault();
-
-
-            const person =
-                document
-                    .getElementById(
-                        "personName"
-                    )
-                    .value
-                    .trim();
-
-
-            if (!person) {
-
-                alert(
-                    "Введите ваше имя!"
-                );
-
-                return;
-
-            }
-
-
-            const newItems = [];
-
-
-            /*
-                ТОВАРЫ ИЗ КАТАЛОГА
-            */
-
-            document
-                .querySelectorAll(
-                    "#catalogContainer .catalog-item"
-                )
-                .forEach(row => {
-
-                    const checkbox =
-                        row.querySelector(
-                            'input[type="checkbox"]'
+                        alert(
+                            "Введите ваше имя!"
                         );
 
-                    const qtyInput =
-                        row.querySelector(
-                            ".catalog-qty"
+                        return;
+
+                    }
+
+
+                    const items = [];
+
+
+                    /*
+                        КАТАЛОГ
+                    */
+
+                    document
+                        .querySelectorAll(
+                            ".food-checkbox"
+                        )
+                        .forEach(
+                            checkbox => {
+
+                                if (
+                                    !checkbox.checked
+                                ) {
+                                    return;
+                                }
+
+
+                                const food =
+                                    checkbox.dataset.food;
+
+
+                                const qtyInput =
+                                    document.querySelector(
+                                        `.catalog-qty[data-food="${CSS.escape(food)}"]`
+                                    );
+
+
+                                const quantity =
+                                    qtyInput
+                                        ?.value
+                                        .trim() ||
+                                    "1 шт";
+
+
+                                items.push({
+
+                                    food:
+                                        food,
+
+                                    quantity:
+                                        quantity,
+
+                                    unit_price:
+                                        0,
+
+                                    override_quantity:
+                                        null
+
+                                });
+
+
+                                checkbox.checked =
+                                    false;
+
+
+                                if (qtyInput) {
+                                    qtyInput.value =
+                                        "";
+                                }
+
+                            }
+                        );
+
+
+                    /*
+                        СВОИ ПОЗИЦИИ
+                    */
+
+                    document
+                        .querySelectorAll(
+                            ".custom-row"
+                        )
+                        .forEach(
+                            row => {
+
+                                const name =
+                                    row.querySelector(
+                                        ".custom-name"
+                                    )
+                                    .value
+                                    .trim();
+
+
+                                const quantity =
+                                    row.querySelector(
+                                        ".custom-qty"
+                                    )
+                                    .value
+                                    .trim();
+
+
+                                if (!name) {
+                                    return;
+                                }
+
+
+                                items.push({
+
+                                    food:
+                                        name,
+
+                                    quantity:
+                                        quantity ||
+                                        "1 шт",
+
+                                    unit_price:
+                                        0,
+
+                                    override_quantity:
+                                        null
+
+                                });
+
+                            }
                         );
 
 
                     if (
-                        checkbox &&
-                        checkbox.checked
+                        items.length === 0
                     ) {
 
-                        const food =
-                            checkbox.dataset.food;
+                        alert(
+                            "Выберите продукты или добавьте свою позицию!"
+                        );
 
-
-                        const quantity =
-                            qtyInput.value
-                                .trim() ||
-                            "1 шт";
-
-
-                        newItems.push({
-
-                            food: food,
-
-                            quantity: quantity,
-
-                            unit_price: 0,
-
-                            override_quantity: null
-
-                        });
-
-
-                        checkbox.checked =
-                            false;
-
-                        qtyInput.value = "";
+                        return;
 
                     }
 
-                });
 
-
-            /*
-                СВОИ ТОВАРЫ
-            */
-
-            document
-                .querySelectorAll(
-                    ".custom-row"
-                )
-                .forEach(row => {
-
-                    const nameInput =
-                        row.querySelector(
-                            ".custom-name"
-                        );
-
-                    const qtyInput =
-                        row.querySelector(
-                            ".custom-qty"
+                    const loading =
+                        document.getElementById(
+                            "loading"
                         );
 
 
-                    const name =
-                        nameInput.value
-                            .trim();
+                    loading.style.display =
+                        "block";
 
 
-                    const quantity =
-                        qtyInput.value
-                            .trim();
+                    try {
+
+                        /*
+                            СОХРАНЯЕМ В FIRESTORE
+                        */
+
+                        await addDoc(
+                            ordersCollection,
+                            {
+
+                                person:
+                                    person,
+
+                                items:
+                                    items,
+
+                                createdAt:
+                                    new Date()
+                                        .toISOString()
+
+                            }
+                        );
 
 
-                    if (name) {
+                        /*
+                            ОЧИСТКА
+                        */
 
-                        newItems.push({
+                        document
+                            .getElementById(
+                                "personName"
+                            )
+                            .value = "";
 
-                            food: name,
 
-                            quantity:
-                                quantity ||
-                                "1 шт",
+                        document
+                            .getElementById(
+                                "customItemsContainer"
+                            )
+                            .innerHTML = "";
 
-                            unit_price: 0,
 
-                            override_quantity:
-                                null
+                        addCustomRow();
 
-                        });
+
+                        showStatus(
+                            "✅ Ваш список успешно сохранён!",
+                            "success"
+                        );
+
+
+                    } catch (error) {
+
+                        console.error(
+                            error
+                        );
+
+
+                        showStatus(
+                            "Ошибка сохранения: " +
+                            error.message,
+                            "error"
+                        );
+
+                    } finally {
+
+                        loading.style.display =
+                            "none";
 
                     }
 
-                });
+                }
+            );
 
 
-            if (
-                newItems.length === 0
-            ) {
+        /* =========================================
+           ЗАГРУЗКА ВСЕХ ЗАКАЗОВ
+        ========================================= */
 
-                alert(
-                    "Выберите что-то из каталога или добавьте свою позицию!"
+        async function getOrders() {
+
+            const snapshot =
+                await getDocs(
+                    ordersCollection
                 );
 
-                return;
 
-            }
+            const orders = [];
 
 
-            const loading =
+            snapshot.forEach(
+                item => {
+
+                    orders.push({
+
+                        id:
+                            item.id,
+
+                        ...item.data()
+
+                    });
+
+                }
+            );
+
+
+            return orders;
+
+        }
+
+
+        /* =========================================
+           АДМИНКА
+        ========================================= */
+
+        let clickCount = 0;
+
+
+        document
+            .getElementById("mainTitle")
+            .addEventListener(
+                "click",
+                () => {
+
+                    clickCount++;
+
+
+                    if (
+                        clickCount >= 10
+                    ) {
+
+                        clickCount = 0;
+
+
+                        document
+                            .getElementById(
+                                "adminSection"
+                            )
+                            .style.display =
+                            "block";
+
+
+                        document
+                            .getElementById(
+                                "adminSection"
+                            )
+                            .scrollIntoView({
+                                behavior:
+                                    "smooth"
+                            });
+
+
+                        loadAdmin();
+
+                    }
+
+                }
+            );
+
+
+        window.closeAdminPanel =
+            function() {
+
+                document
+                    .getElementById(
+                        "adminSection"
+                    )
+                    .style.display =
+                    "none";
+
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth"
+                });
+
+            };
+
+
+        /* =========================================
+           ЗАГРУЗКА АДМИНКИ
+        ========================================= */
+
+        async function loadAdmin() {
+
+            const loader =
                 document.getElementById(
-                    "loading"
+                    "adminLoading"
                 );
 
 
-            loading.style.display =
+            loader.style.display =
                 "block";
 
 
             try {
 
-                /*
-                    ВАЖНО:
-                    Теперь мы НЕ читаем старый массив,
-                    НЕ делаем items.concat(...)
-                    и НЕ перезаписываем общий ключ.
-
-                    Каждая отправка получает
-                    отдельный ключ KVdb.
-                */
-
-                const record = {
-
-                    recordKey:
-                        createRecordKey(),
-
-                    person:
-                        person,
-
-                    createdAt:
-                        new Date()
-                            .toISOString(),
-
-                    items:
-                        newItems
-
-                };
+                const orders =
+                    await getOrders();
 
 
-                await saveRecord(
-                    record
+                renderSummary(
+                    orders
                 );
 
 
-                /*
-                    Очищаем форму.
-                */
-
-                document
-                    .getElementById(
-                        "personName"
-                    )
-                    .value = "";
-
-
-                document
-                    .getElementById(
-                        "customItemsContainer"
-                    )
-                    .innerHTML = "";
-
-
-                addCustomRow();
-
-
-                showStatus(
-                    "Ваш список успешно сохранён!",
-                    "success"
+                renderRaw(
+                    orders
                 );
 
 
             } catch (error) {
 
                 console.error(
-                    "Ошибка сохранения:",
                     error
                 );
 
 
                 showStatus(
-                    "Ошибка сохранения: " +
+                    "Ошибка загрузки: " +
                     error.message,
                     "error"
                 );
 
             } finally {
 
-                loading.style.display =
+                loader.style.display =
                     "none";
 
             }
 
         }
-    );
 
 
-/* =========================================================
-   СООБЩЕНИЕ
-   ========================================================= */
+        /* =========================================
+           ОБЩАЯ ТАБЛИЦА
+        ========================================= */
 
-function showStatus(
-    message,
-    type
-) {
+        function renderSummary(
+            orders
+        ) {
 
-    const box =
-        document.getElementById(
-            "statusMessage"
-        );
-
-
-    box.textContent =
-        message;
+            const tbody =
+                document.getElementById(
+                    "summaryItemsList"
+                );
 
 
-    box.className =
-        "status " + type;
+            tbody.innerHTML = "";
 
 
-    setTimeout(() => {
-
-        box.className =
-            "status";
-
-    }, 5000);
-
-}
+            const groups = {};
 
 
-/* =========================================================
-   ЭКРАНИРОВАНИЕ HTML
-   ========================================================= */
+            /*
+                СОБИРАЕМ ВСЕ ПРОДУКТЫ
+            */
 
-function escapeHtml(value) {
+            orders.forEach(
+                order => {
 
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return "";
-    }
-
-
-    return String(value)
-
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-
-        .replace(
-            /</g,
-            "&lt;"
-        )
-
-        .replace(
-            />/g,
-            "&gt;"
-        )
-
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-
-}
+                    if (
+                        !Array.isArray(
+                            order.items
+                        )
+                    ) {
+                        return;
+                    }
 
 
-/* =========================================================
-   ЭКРАНИРОВАНИЕ ДЛЯ JS
-   ========================================================= */
+                    order.items.forEach(
+                        (item, itemIndex) => {
 
-function escapeJs(value) {
-
-    return String(value)
-
-        .replace(
-            /\\/g,
-            "\\\\"
-        )
-
-        .replace(
-            /'/g,
-            "\\'"
-        )
-
-        .replace(
-            /"/g,
-            '\\"'
-        );
-
-}
+                            const key =
+                                item.food
+                                    .trim()
+                                    .toLowerCase();
 
 
-/* =========================================================
-   ФОРМАТ ДЕНЕГ
-   ========================================================= */
+                            if (
+                                !groups[key]
+                            ) {
 
-function formatMoney(value) {
+                                groups[key] = {
 
-    return Number(value || 0)
-        .toLocaleString(
-            "ru-RU",
-            {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
+                                    food:
+                                        item.food,
+
+                                    quantity:
+                                        0,
+
+                                    unit:
+                                        "",
+
+                                    canSum:
+                                        true,
+
+                                    price:
+                                        Number(
+                                            item.unit_price
+                                        ) || 0,
+
+                                    override:
+                                        item.override_quantity ??
+                                        null
+
+                                };
+
+                            }
+
+
+                            const group =
+                                groups[key];
+
+
+                            /*
+                                ЦЕНА
+                            */
+
+                            if (
+                                item.unit_price !==
+                                undefined
+                            ) {
+
+                                group.price =
+                                    Number(
+                                        item.unit_price
+                                    ) || 0;
+
+                            }
+
+
+                            /*
+                                ИЗМЕНЁННОЕ КОЛИЧЕСТВО
+                            */
+
+                            if (
+                                item.override_quantity !==
+                                    undefined &&
+                                item.override_quantity !==
+                                    null
+                            ) {
+
+                                group.override =
+                                    item.override_quantity;
+
+                            }
+
+
+                            /*
+                                РАЗБИРАЕМ КОЛИЧЕСТВО
+                            */
+
+                            const match =
+                                String(
+                                    item.quantity
+                                )
+                                .trim()
+                                .match(
+                                    /^([\d.,]+)\s*(.*)$/
+                                );
+
+
+                            if (!match) {
+
+                                group.canSum =
+                                    false;
+
+                                return;
+
+                            }
+
+
+                            const number =
+                                parseFloat(
+                                    match[1]
+                                        .replace(
+                                            ",",
+                                            "."
+                                        )
+                                );
+
+
+                            const unit =
+                                match[2]
+                                    .trim()
+                                    .toLowerCase();
+
+
+                            if (
+                                isNaN(number)
+                            ) {
+
+                                group.canSum =
+                                    false;
+
+                                return;
+
+                            }
+
+
+                            if (
+                                group.unit === ""
+                            ) {
+
+                                group.unit =
+                                    unit;
+
+                            }
+
+
+                            if (
+                                group.unit !==
+                                unit
+                            ) {
+
+                                group.canSum =
+                                    false;
+
+                                return;
+
+                            }
+
+
+                            group.quantity +=
+                                number;
+
+                        }
+                    );
+
+                }
+            );
+
+
+            let total = 0;
+
+
+            const keys =
+                Object.keys(groups);
+
+
+            if (
+                keys.length === 0
+            ) {
+
+                tbody.innerHTML = `
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+                            class="empty"
+                        >
+                            Пока никто ничего не добавил.
+                        </td>
+
+                    </tr>
+
+                `;
+
+                document
+                    .getElementById(
+                        "totalAmount"
+                    )
+                    .textContent =
+                    "0.00";
+
+                return;
+
             }
-        );
-
-}
 
 
-/* =========================================================
-   ЗАПУСК
-   ========================================================= */
+            keys.forEach(
+                key => {
 
-renderCatalog();
+                    const group =
+                        groups[key];
 
-addCustomRow();
 
-</script></body>
+                    let quantity =
+                        group.quantity;
+
+
+                    let displayQuantity;
+
+
+                    /*
+                        ЕСЛИ АДМИН ВРУЧНУЮ
+                        ПОМЕНЯЛ КОЛИЧЕСТВО
+                    */
+
+                    if (
+                        group.override !==
+                        null
+                    ) {
+
+                        displayQuantity =
+                            group.override;
+
+
+                        const match =
+                            String(
+                                group.override
+                            )
+                            .match(
+                                /^([\d.,]+)/
+                            );
+
+
+                        if (match) {
+
+                            quantity =
+                                parseFloat(
+                                    match[1]
+                                        .replace(
+                                            ",",
+                                            "."
+                                        )
+                                );
+
+                            if (
+                                isNaN(
+                                    quantity
+                                )
+                            ) {
+                                quantity = 0;
+                            }
+
+                        }
+
+                    } else {
+
+                        if (
+                            group.canSum
+                        ) {
+
+                            displayQuantity =
+                                Number.isInteger(
+                                    group.quantity
+                                )
+                                ? group.quantity
+                                : group.quantity
+                                    .toFixed(1);
+
+                            if (
+                                group.unit
+                            ) {
+
+                                displayQuantity +=
+                                    " " +
+                                    group.unit;
+
+                            }
+
+                        } else {
+
+                            displayQuantity =
+                                "См. детали";
+
+                            quantity = 0;
+
+                        }
+
+                    }
+
+
+                    const rowTotal =
+                        quantity *
+                        group.price;
+
+
+                    total +=
+                        rowTotal;
+
+
+                    const tr =
+                        document.createElement(
+                            "tr"
+                        );
+
+
+                    tr.innerHTML = `
+
+                        <td>
+                            <b>
+                                ${escapeHtml(
+                                    group.food
+                                )}
+                            </b>
+                        </td>
+
+                        <td>
+
+                            <input
+                                type="text"
+                                value="${escapeHtml(
+                                    displayQuantity
+                                )}"
+                                data-group="${escapeHtml(
+                                    key
+                                )}"
+                                class="group-quantity"
+                            >
+
+                        </td>
+
+                        <td>
+
+                            <input
+                                type="number"
+                                step="any"
+                                value="${group.price || ""}"
+                                data-group="${escapeHtml(
+                                    key
+                                )}"
+                                class="group-price"
+                                placeholder="Цена"
+                            >
+
+                        </td>
+
+                        <td>
+                            <b>
+                                ${money(
+                                    rowTotal
+                                )} ₸
+                            </b>
+                        </td>
+
+                        <td>
+
+                            <button
+                                class="btn-danger delete-group"
+                                data-group="${escapeHtml(
+                                    key
+                                )}"
+                            >
+                                Удалить всё
+                            </button>
+
+                        </td>
+
+                    `;
+
+
+                    /*
+                        СОХРАНЕНИЕ КОЛИЧЕСТВА
+                    */
+
+                    tr
+                        .querySelector(
+                            ".group-quantity"
+                        )
+                        .addEventListener(
+                            "change",
+                            async event => {
+
+                                await updateGroupQuantity(
+                                    key,
+                                    event.target.value
+                                );
+
+                            }
+                        );
+
+
+                    /*
+                        СОХРАНЕНИЕ ЦЕНЫ
+                    */
+
+                    tr
+                        .querySelector(
+                            ".group-price"
+                        )
+                        .addEventListener(
+                            "change",
+                            async event => {
+
+                                await updateGroupPrice(
+                                    key,
+                                    event.target.value
+                                );
+
+                            }
+                        );
+
+
+                    /*
+                        УДАЛЕНИЕ ГРУППЫ
+                    */
+
+                    tr
+                        .querySelector(
+                            ".delete-group"
+                        )
+                        .addEventListener(
+                            "click",
+                            async () => {
+
+                                await deleteGroup(
+                                    key
+                                );
+
+                            }
+                        );
+
+
+                    tbody.appendChild(
+                        tr
+                    );
+
+                }
+            );
+
+
+            document
+                .getElementById(
+                    "totalAmount"
+                )
+                .textContent =
+                money(total);
+
+        }
+
+
+        /* =========================================
+           ДЕТАЛЬНАЯ ТАБЛИЦА
+        ========================================= */
+
+        function renderRaw(
+            orders
+        ) {
+
+            const tbody =
+                document.getElementById(
+                    "rawItemsList"
+                );
+
+
+            tbody.innerHTML = "";
+
+
+            if (
+                orders.length === 0
+            ) {
+
+                tbody.innerHTML = `
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+                            class="empty"
+                        >
+                            Нет записей.
+                        </td>
+
+                    </tr>
+
+                `;
+
+                return;
+
+            }
+
+
+            orders.forEach(
+                order => {
+
+                    if (
+                        !Array.isArray(
+                            order.items
+                        )
+                    ) {
+                        return;
+                    }
+
+
+                    order.items.forEach(
+                        (item, itemIndex) => {
+
+                            const tr =
+                                document.createElement(
+                                    "tr"
+                                );
+
+
+                            let date = "-";
+
+
+                            if (
+                                order.createdAt
+                            ) {
+
+                                try {
+
+                                    date =
+                                        new Date(
+                                            order.createdAt
+                                        )
+                                        .toLocaleString(
+                                            "ru-RU"
+                                        );
+
+                                } catch (e) {}
+
+                            }
+
+
+                            tr.innerHTML = `
+
+                                <td>
+                                    <b>
+                                        ${escapeHtml(
+                                            order.person
+                                        )}
+                                    </b>
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(
+                                        item.food
+                                    )}
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(
+                                        item.quantity
+                                    )}
+                                </td>
+
+                                <td>
+                                    <span class="date">
+                                        ${escapeHtml(
+                                            date
+                                        )}
+                                    </span>
+                                </td>
+
+                                <td>
+
+                                    <button
+                                        class="btn-danger"
+                                    >
+                                        Удалить
+                                    </button>
+
+                                </td>
+
+                            `;
+
+
+                            tr
+                                .querySelector(
+                                    "button"
+                                )
+                                .addEventListener(
+                                    "click",
+                                    async () => {
+
+                                        await deleteItem(
+                                            order.id,
+                                            itemIndex
+                                        );
+
+                                    }
+                                );
+
+
+                            tbody.appendChild(
+                                tr
+                            );
+
+                        }
+                    );
+
+                }
+            );
+
+        }
+
+
+        /* =========================================
+           ИЗМЕНИТЬ ЦЕНУ ПРОДУКТА
+        ========================================= */
+
+        async function updateGroupPrice(
+            groupKey,
+            price
+        ) {
+
+            try {
+
+                const orders =
+                    await getOrders();
+
+
+                const newPrice =
+                    parseFloat(
+                        String(price)
+                            .replace(
+                                ",",
+                                "."
+                            )
+                    ) || 0;
+
+
+                for (
+                    const order
+                    of orders
+                ) {
+
+                    let changed =
+                        false;
+
+
+                    const items =
+                        order.items.map(
+                            item => {
+
+                                if (
+                                    item.food
+                                        .trim()
+                                        .toLowerCase() ===
+                                    groupKey
+                                ) {
+
+                                    changed =
+                                        true;
+
+                                    return {
+
+                                        ...item,
+
+                                        unit_price:
+                                            newPrice
+
+                                    };
+
+                                }
+
+
+                                return item;
+
+                            }
+                        );
+
+
+                    if (changed) {
+
+                        await updateDoc(
+                            doc(
+                                db,
+                                "turbaza_orders",
+                                order.id
+                            ),
+                            {
+                                items:
+                                    items
+                            }
+                        );
+
+                    }
+
+                }
+
+
+                await loadAdmin();
+
+
+            } catch (error) {
+
+                console.error(
+                    error
+                );
+
+                showStatus(
+                    "Ошибка сохранения цены: " +
+                    error.message,
+                    "error"
+                );
+
+            }
+
+        }
+
+
+        /* =========================================
+           ИЗМЕНИТЬ КОЛИЧЕСТВО
+        ========================================= */
+
+        async function updateGroupQuantity(
+            groupKey,
+            quantity
+        ) {
+
+            try {
+
+                const orders =
+                    await getOrders();
+
+
+                for (
+                    const order
+                    of orders
+                ) {
+
+                    let changed =
+                        false;
+
+
+                    const items =
+                        order.items.map(
+                            item => {
+
+                                if (
+                                    item.food
+                                        .trim()
+                                        .toLowerCase() ===
+                                    groupKey
+                                ) {
+
+                                    changed =
+                                        true;
+
+                                    return {
+
+                                        ...item,
+
+                                        override_quantity:
+                                            quantity
+
+                                    };
+
+                                }
+
+
+                                return item;
+
+                            }
+                        );
+
+
+                    if (changed) {
+
+                        await updateDoc(
+                            doc(
+                                db,
+                                "turbaza_orders",
+                                order.id
+                            ),
+                            {
+                                items:
+                                    items
+                            }
+                        );
+
+                    }
+
+                }
+
+
+                await loadAdmin();
+
+
+            } catch (error) {
+
+                console.error(
+                    error
+                );
+
+                showStatus(
+                    "Ошибка сохранения количества: " +
+                    error.message,
+                    "error"
+                );
+
+            }
+
+        }
+
+
+        /* =========================================
+           УДАЛИТЬ ОДНУ ПОЗИЦИЮ
+        ========================================= */
+
+        async function deleteItem(
+            orderId,
+            itemIndex
+        ) {
+
+            if (
+                !confirm(
+                    "Удалить эту заявку?"
+                )
+            ) {
+                return;
+            }
+
+
+            try {
+
+                const orders =
+                    await getOrders();
+
+
+                const order =
+                    orders.find(
+                        x =>
+                            x.id ===
+                            orderId
+                    );
+
+
+                if (!order) {
+                    return;
+                }
+
+
+                const items =
+                    [...order.items];
+
+
+                items.splice(
+                    itemIndex,
+                    1
+                );
+
+
+                if (
+                    items.length === 0
+                ) {
+
+                    await deleteDoc(
+                        doc(
+                            db,
+                            "turbaza_orders",
+                            orderId
+                        )
+                    );
+
+                } else {
+
+                    await updateDoc(
+                        doc(
+                            db,
+                            "turbaza_orders",
+                            orderId
+                        ),
+                        {
+                            items:
+                                items
+                        }
+                    );
+
+                }
+
+
+                await loadAdmin();
+
+
+            } catch (error) {
+
+                console.error(
+                    error
+                );
+
+                showStatus(
+                    "Ошибка удаления: " +
+                    error.message,
+                    "error"
+                );
+
+            }
+
+        }
+
+
+        /* =========================================
+           УДАЛИТЬ ВЕСЬ ПРОДУКТ
+        ========================================= */
+
+        async function deleteGroup(
+            groupKey
+        ) {
+
+            if (
+                !confirm(
+                    "Удалить этот продукт у всех участников?"
+                )
+            ) {
+                return;
+            }
+
+
+            try {
+
+                const orders =
+                    await getOrders();
+
+
+                for (
+                    const order
+                    of orders
+                ) {
+
+                    const newItems =
+                        order.items.filter(
+                            item =>
+                                item.food
+                                    .trim()
+                                    .toLowerCase() !==
+                                groupKey
+                        );
+
+
+                    if (
+                        newItems.length !==
+                        order.items.length
+                    ) {
+
+                        if (
+                            newItems.length === 0
+                        ) {
+
+                            await deleteDoc(
+                                doc(
+                                    db,
+                                    "turbaza_orders",
+                                    order.id
+                                )
+                            );
+
+                        } else {
+
+                            await updateDoc(
+                                doc(
+                                    db,
+                                    "turbaza_orders",
+                                    order.id
+                                ),
+                                {
+                                    items:
+                                        newItems
+                                }
+                            );
+
+                        }
+
+                    }
+
+                }
+
+
+                await loadAdmin();
+
+
+            } catch (error) {
+
+                console.error(
+                    error
+                );
+
+                showStatus(
+                    "Ошибка удаления: " +
+                    error.message,
+                    "error"
+                );
+
+            }
+
+        }
+
+
+        /* =========================================
+           ЗАПУСК
+        ========================================= */
+
+        renderCatalog();
+
+        addCustomRow();
+
+    </script>
+
+</body>
     </html>
