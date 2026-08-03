@@ -1,526 +1,298 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Деньги</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root{ --accent:#00796b; --accent-dark:#004d40; --card-bg: rgba(255,255,255,0.78); --card-shadow: 0 12px 30px rgba(6,22,37,0.12); }
-html,body{ height:100%; }
-body{ font-family:'Inter',sans-serif; margin:0; padding:0; min-height:100vh; position:relative; overflow-x:hidden; background:linear-gradient(120deg,#f0fbff 0%,#f6fff7 40%,#fffaf0 100%); color:#04363a; }
-#main{ max-width:640px; margin:80px auto; text-align:center; padding:34px; background:var(--card-bg); border-radius:20px; box-shadow:var(--card-shadow); z-index:1; transition:transform 0.18s ease; }
-#sidebar{ position:fixed; top:20px; right:20px; width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.70)); padding:16px 22px; border-radius:14px; box-shadow:0 12px 30px rgba(6,22,37,0.08); }
-#sidebar h4{ margin:0; color:var(--accent); cursor:pointer; user-select:none; }
-#authForm{ margin-top:10px; max-height:0; opacity:0; transition:max-height 0.28s ease, opacity 0.28s ease; overflow:hidden; }
-#authForm.show{ max-height:220px; opacity:1; }
-input,button{ padding:9px; margin:8px 0; width:100%; box-sizing:border-box; border-radius:10px; border:1px solid #dbe9e6; font-size:0.96em; }
-button{ background:var(--accent); color:#fff; border:none; cursor:pointer; transition:0.18s; }
-button:hover{ background:var(--accent-dark); }
-button:disabled{ background:#bbb; cursor:not-allowed; }
-#authStatus{ font-size:0.86em; color:#375651; margin-top:6px; }
-#balanceDisplay{ font-size:2.6em; margin-bottom:14px; font-weight:600; letter-spacing:0.4px; transition:color 0.18s ease; }
-#manualAmount,#addBtn{ margin-top:14px; font-size:1em; }
-#addBtn{ display:flex; align-items:center; justify-content:center; gap:8px; }
-#historyContainer{ margin-top:34px; text-align:left; max-height:340px; overflow-y:auto; }
-.history-item{ padding:10px; margin:6px 0; background:rgba(255,255,255,0.85); border-radius:10px; box-shadow:0 4px 10px rgba(6,22,37,0.06); display:flex; justify-content:space-between; align-items:center; }
-.float-change {
-  position:fixed;
-  left:50%;
-  transform:translateX(-50%);
-  top:20px;
-  background:rgba(0,0,0,0.75);
-  color:#fff;
-  padding:6px 12px;
-  border-radius:10px;
-  z-index:99999;
-  font-weight:600;
-  pointer-events:none;
-  opacity:0;
-  transition:transform 0.6s cubic-bezier(.2,.9,.2,1), opacity 0.3s ease;
-}
-.float-change.show { opacity:1; transform:translateX(-50%) translateY(12px); }
-
-/* server-badge: теперь картинка обёрнута ссылкой, картинку ограничиваем по размеру,
-   чтобы не ломать верстку при подгрузке внешнего изображения */
-.server-badge{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  background:rgba(0,121,107,0.08);
-  color:var(--accent-dark);
-  padding:4px;
-  border-radius:10px;
-  font-size:0.75em;
-  margin-bottom:8px;
-  font-weight:600;
-}
-/* Ограничение размера для внешней картинки */
-.server-badge img{
-  width:40px;
-  height:40px;
-  max-width:100%;
-  object-fit:cover;
-  display:block;
-  border-radius:8px;
-}
-
-/* На маленьких экранах подправим отступы */
-@media (max-width:700px){ #main{ margin:60px 18px; padding:22px; } #sidebar{ width:calc(100% - 40px); right:20px; left:20px; top:auto; bottom:20px; } }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Еда на турбазу</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 15px; background: #f4f4f9; color: #333; }
+        h1, h2, h3 { color: #2c3e50; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-tabs button { flex: 1; padding: 10px; background: #bdc3c7; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1rem; color: #fff; }
+        .nav-tabs button.active { background: #3498db; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; font-size: 0.9rem; }
+        th { background-color: #3498db; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .card { background: #fff; padding: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 5px; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 8px; margin: 5px 0 12px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        
+        .catalog-category { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .catalog-category h4 { margin: 5px 0 10px 0; color: #16a085; }
+        .catalog-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.95rem; }
+        .catalog-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .catalog-item input[type="text"] { margin: 0; width: 150px; padding: 5px; }
+        
+        button.main-btn { background-color: #2ecc71; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; width: 100%; font-weight: bold; margin-top: 10px; }
+        button.main-btn:hover { background-color: #27ae60; }
+        .btn-danger { background-color: #e74c3c; padding: 5px 10px; font-size: 0.8rem; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-danger:hover { background-color: #c0392b; }
+        
+        .total-box { font-size: 1.2rem; font-weight: bold; margin-top: 20px; background: #e8f8f5; padding: 15px; border-left: 5px solid #2ecc71; border-radius: 4px; }
+        .loading { text-align: center; color: #666; font-style: italic; margin-top: 20px; }
+    </style>
 </head>
 <body>
 
-<div id="sidebar">
-  <h4 id="toggleAuth">Авторизация</h4>
-  <div id="authForm">
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Пароль" />
-    <button id="loginBtn">Войти</button>
-    <button id="logoutBtn" style="display:none;">Выйти</button>
-    <p id="authStatus">Не авторизованы</p>
-  </div>
-</div>
+    <h1>🏕️ Еда на турбазу</h1>
 
-<div id="main">
-  <div class="server-badge">
-    <a href="https://png.pngtree.com/png-clipart/20240909/original/pngtree-money-mouth-face-emoji-png-image_15980567.png" target="_blank" rel="noopener noreferrer" title="Открыть картинку">
-      <img src="https://png.pngtree.com/png-clipart/20240909/original/pngtree-money-mouth-face-emoji-png-image_15980567.png"
-           alt="Money emoji" width="40" height="40" loading="lazy" referrerpolicy="no-referrer">
-    </a>
-  </div>
+    <!-- Переключение между формой для участников и админкой -->
+    <div class="nav-tabs">
+        <button id="btnTabForm" class="active" onclick="switchTab('form')">📝 Заполнить список</button>
+        <button id="btnTabAdmin" onclick="switchTab('admin')">🔒 Админ-панель</button>
+    </div>
 
-  <div id="balanceDisplay">0</div>
-  <input type="number" id="manualAmount" placeholder="Введите сумму (плюс/минус)">
-  <button id="addBtn"><span>💰</span> Добавить/Вычесть</button>
+    <div id="loading" class="loading">Загрузка данных...</div>
 
-  <div id="historyContainer">
-    <h4>История изменений:</h4>
-    <div id="historyList">Нет записей</div>
-  </div>
-</div>
+    <!-- Вкладка: Заполнение списка -->
+    <div id="tabForm" class="tab-content active">
+        <div class="card">
+            <form id="turbazaForm">
+                <h3>Ваши данные</h3>
+                <label>Ваше имя:</label>
+                <input type="text" id="personName" required placeholder="Например, Алексей">
 
-<div id="floatChange" class="float-change" aria-hidden="true"></div>
+                <h3>1. Выберите из каталога:</h3>
+                <div id="catalogContainer"></div>
 
-<script type="module">
-// Configuration: Server-side daily accrual handling
-// Установите в false чтобы клиент добавлял автоматические суммы при входе пользователя.
-// Если вы хотите, чтобы начисления выполнялись надёжно сервером — оставьте true и реализуйте Cloud Function.
-const SERVER_HANDLES_DAILY = false;
+                <h3>2. Добавить свое (чего нет в списке):</h3>
+                <div id="customItemsContainer">
+                    <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                        <input type="text" placeholder="Название (например, Лаваш)" class="custom-name" style="flex: 2; margin:0;">
+                        <input type="text" placeholder="Кол-во (3 шт)" class="custom-qty" style="flex: 1; margin:0;">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                        <input type="text" placeholder="Название еще чего-то" class="custom-name" style="flex: 2; margin:0;">
+                        <input type="text" placeholder="Кол-во" class="custom-qty" style="flex: 1; margin:0;">
+                    </div>
+                </div>
 
-// Уведомления
-function showToast(text, timeout = 3500){
-  let t = document.getElementById('__app_toast__');
-  if(!t){
-    t = document.createElement('div'); t.id='__app_toast__';
-    Object.assign(t.style,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',background:'rgba(6,22,37,0.9)',color:'#fff',padding:'10px 16px',borderRadius:'10px',zIndex:99999,fontFamily:'Inter, sans-serif'});
-    t.style.transition = 'opacity 0.2s ease';
-    t.style.opacity = '0';
-    document.body.appendChild(t);
-  }
-  t.textContent = text;
-  t.style.opacity = '1';
-  clearTimeout(t.__hideTimer);
-  t.__hideTimer = setTimeout(()=> t.style.opacity='0', timeout);
-}
+                <button type="submit" class="main-btn">Отправить мой выбор</button>
+            </form>
+        </div>
+    </div>
 
-// Firebase (CDN, modular)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection,
-  addDoc, query, orderBy, getDocs, writeBatch, serverTimestamp, where
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    <!-- Вкладка: Админ-панель -->
+    <div id="tabAdmin" class="tab-content">
+        <div class="card">
+            <h2>📊 Сводная таблица (Админ)</h2>
+            <p>Здесь вы видите общий список всех участников, можете проставлять цены и удалять лишнее.</p>
+            
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Имя</th>
+                            <th>Позиция / Продукт</th>
+                            <th>Количество</th>
+                            <th>Цена (₸)</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminItemsList"></tbody>
+                </table>
+            </div>
 
-// Вставьте ваш firebaseConfig (в репо уже есть)
-const firebaseConfig = {
-  apiKey: "AIzaSyDNk1We9du5BJyrgGbQrkqd7tSDscneIOA",
-  authDomain: "gold-11fa4.firebaseapp.com",
-  databaseURL: "https://gold-11fa4-default-rtdb.firebaseio.com",
-  projectId: "gold-11fa4",
-  storageBucket: "gold-11fa4.firebasestorage.app",
-  messagingSenderId: "226774330161",
-  appId: "1:226774330161:web:d1e1c93ade5dcea31d5e10",
-  measurementId: "G-7MLLBN1YZ4"
-};
+            <div class="total-box">
+                Общая стоимость поездки: <span id="totalAmount">0</span> ₸
+            </div>
+        </div>
+    </div>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+    <script>
+        const API_URL = "https://kvdb.io/sergey_turbaza_food_2026/list";
 
-// Elements
-const balanceDisplay = document.getElementById("balanceDisplay");
-const manualAmount = document.getElementById("manualAmount");
-const addBtn = document.getElementById("addBtn");
-const historyList = document.getElementById("historyList");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const loginBtnEl = document.getElementById("loginBtn");
-const logoutBtnEl = document.getElementById("logoutBtn");
-const authStatus = document.getElementById("authStatus");
-const toggleAuth = document.getElementById("toggleAuth");
-const authForm = document.getElementById("authForm");
-const floatChange = document.getElementById('floatChange');
+        const CATALOG = {
+            "🍖 Мясо и птица": ["Шашлык (баранина/свинина)", "Куриные крылышки / бедра", "Купаты / колбаски"],
+            "🍅 Овощи и зелень": ["Помидоры", "Огурцы", "Зелень (укроп, петрушка)", "Лук репчатый"],
+            "🥤 Напитки": ["Питьевая вода (5л)", "Соки / Морс", "Газировка", "Алкоголь"],
+            "🧂 Соусы и специи": ["Кетчуп / Соус", "Майонез", "Соль / Специи"],
+            "🪵 Разное": ["Уголь древесный", "Жидкость для розжига", "Одноразовая посуда", "Салфетки"]
+        };
 
-// Settings
-const DAILY_RATE = 15000;
-let lastBalance = 0; // будет инициализирован из Firestore
-let holidays = []; // при необходимости добавьте даты 'YYYY-MM-DD' для повышенной ставки
-
-// privilege flag for automated behavior (keeps original meaning)
-let currentUserIsAutomated = false;
-
-const balanceDocRef = doc(db,"salaryData","balance");
-const entriesColRef = collection(balanceDocRef, "entries");
-
-// UI handlers
-toggleAuth.onclick = ()=> authForm.classList.toggle("show");
-loginBtnEl.onclick = async ()=> {
-  try { await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value); showToast('Вход выполнен'); }
-  catch(e){ console.error(e); showToast('Ошибка входа: ' + (e.message || e)); }
-};
-logoutBtnEl.onclick = async ()=> {
-  try { await signOut(auth); showToast('Вы вышли'); }
-  catch(e){ console.error(e); showToast('Ошибка выхода'); }
-};
-
-function enableEditing(enabled){
-  manualAmount.disabled = !enabled;
-  addBtn.disabled = !enabled;
-  manualAmount.style.opacity = enabled ? '1' : '0.6';
-}
-
-// Smooth numeric animation for balance + floating change badge
-function animateBalanceChange(newBalance, prevBalance, changeAmount = 0, duration = 700){
-  const from = Number(prevBalance) || 0;
-  const to = Number(newBalance) || 0;
-  // color based on net difference
-  balanceDisplay.style.color = (to - from >= 0) ? "#2e7d32" : "#c62828";
-
-  // numeric animation
-  const start = performance.now();
-  function step(ts){
-    const t = Math.min(1, (ts - start) / duration);
-    // easeOutCubic
-    const eased = 1 - Math.pow(1 - t, 3);
-    const current = Math.round(from + (to - from) * eased);
-    balanceDisplay.textContent = current.toLocaleString('ru-RU');
-    if(t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-
-  // floating change badge
-  if(changeAmount !== 0){
-    const sign = changeAmount > 0 ? "+" : "-";
-    floatChange.textContent = `${sign}${Math.abs(changeAmount).toLocaleString('ru-RU')}`;
-    floatChange.classList.add('show');
-    floatChange.style.background = (changeAmount>0) ? 'rgba(46,125,50,0.9)' : 'rgba(198,40,40,0.9)';
-    // auto hide
-    setTimeout(()=> floatChange.classList.remove('show'), 1400);
-  }
-}
-
-// History UI
-async function updateHistory(){
-  try{
-    const q = query(entriesColRef, orderBy("serverCreatedAt","desc"));
-    const snap = await getDocs(q);
-    if(snap.empty){ historyList.innerHTML = "Нет записей"; return; }
-    historyList.innerHTML = "";
-    snap.forEach(d=>{
-      const data = d.data();
-      // serverCreatedAt может быть либо timestamp либо ISO string
-      let dateStr = data.dateString || (data.serverCreatedAt && typeof data.serverCreatedAt.toDate === 'function' ? data.serverCreatedAt.toDate().toLocaleString() : (data.serverCreatedAt || '—'));
-      const amount = (typeof data.amount === "number")? data.amount.toLocaleString('ru-RU') : String(data.amount);
-      const sign = (data.amount >= 0) ? "+" : "-";
-      const div = document.createElement("div"); div.className = "history-item";
-      // Enhanced source display: show source and service if available
-      let src = "";
-      if(data.source){
-        src = ` (${data.source}`;
-        if(data.service) src += ` • ${data.service}`;
-        src += ')';
-      }
-      div.innerHTML = `<div class="history-date">${dateStr}${src}</div><div class="history-amount" style="color:${data.amount>=0?"#2e7d32":"#c62828"}">${sign}${amount}</div>`;
-      historyList.appendChild(div);
-    });
-  }catch(e){ console.warn(e); historyList.innerHTML="Нет записей"; }
-}
-
-// commitBalanceChange: atomic-ish approach using batch; writes entry with source/manual or automatic.
-// options.forceAutomatic = true marks source 'automatic'
-async function commitBalanceChange(amount, options = { forceAutomatic: false }){
-  const result = { newBalance:null, balanceWritten:false, entryWritten:false, error:null };
-
-  if(!auth.currentUser){
-    result.newBalance = (Number(lastBalance)||0) + Number(amount);
-    result.error = new Error('not-authenticated');
-    return result;
-  }
-
-  try{
-    const balSnap = await getDoc(balanceDocRef);
-    let current = balSnap && balSnap.exists() && typeof balSnap.data().balance === 'number' ? balSnap.data().balance : (Number(lastBalance)||0);
-    const newBalance = current + Number(amount);
-
-    try{
-      const batch = writeBatch(db);
-      batch.set(balanceDocRef, { balance: newBalance }, { merge: true });
-      const newEntryRef = doc(entriesColRef);
-      const source = options && options.forceAutomatic ? 'automatic' : 'manual';
-      batch.set(newEntryRef, { serverCreatedAt: serverTimestamp(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount), source, userId: auth.currentUser ? auth.currentUser.uid : null });
-      await batch.commit();
-      result.newBalance = newBalance; result.balanceWritten = true; result.entryWritten = true; return result;
-    }catch(batchErr){
-      console.warn('Batch failed, fallback:', batchErr);
-      try{ await setDoc(balanceDocRef, { balance: newBalance }, { merge: true }); result.balanceWritten=true; }catch(e){ result.error=e; }
-      try{ await addDoc(entriesColRef,{ serverCreatedAt: new Date().toISOString(), dateString: new Date().toISOString().split('T')[0], amount: Number(amount), source: options && options.forceAutomatic ? 'automatic' : 'manual', userId: auth.currentUser ? auth.currentUser.uid : null }); result.entryWritten = true; }catch(e){ console.warn('addDoc fallback failed', e); }
-      result.newBalance = newBalance; return result;
-    }
-  }catch(err){ console.error(err); result.error = err; result.newBalance = (Number(lastBalance)||0) + Number(amount); return result; }
-}
-
-// Новая функция: при входе проверяем lastDailyAdd у пользователя и добавляем за все пропущенные дни
-async function addMissedDailyAccrualsForUser(user){
-  try{
-    if(!user) return;
-    if(SERVER_HANDLES_DAILY){
-      console.log('addMissedDailyAccrualsForUser: сервер обрабатывает дневные начисления, клиент пропускает.');
-      return;
-    }
-
-    const userRef = doc(db, 'users', user.uid);
-    const snap = await getDoc(userRef);
-    let lastAdd = null;
-    if(snap.exists()){
-      const data = snap.data();
-      if(data && data.lastDailyAdd){
-        lastAdd = new Date(data.lastDailyAdd);
-      }
-    }
-
-    const today = new Date();
-    // Фиксируем начало дня (00:00) для корректного подсчёта целых дней
-    today.setHours(0,0,0,0);
-
-    if(!lastAdd){
-      // Если данных нет — устанавливаем lastDailyAdd на сегодня без начисления
-      await setDoc(userRef, { lastDailyAdd: today.toISOString() }, { merge: true });
-      console.log('addMissedDailyAccrualsForUser: lastDailyAdd не найден, установлено на сегодня.');
-      return;
-    }
-
-    lastAdd.setHours(0,0,0,0);
-    const diffMs = today - lastAdd;
-    const daysPassed = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if(daysPassed <= 0){
-      console.log('addMissedDailyAccrualsForUser: пропущенных дней нет');
-      return;
-    }
-
-    // суммируем по дням (учитываем holidays)
-    let totalToAdd = 0;
-    for(let i = 1; i <= daysPassed; i++){
-      const day = new Date(lastAdd.getTime() + i * 24 * 60 * 60 * 1000);
-      const dayStr = day.toISOString().split('T')[0];
-      totalToAdd += holidays.includes(dayStr) ? (DAILY_RATE + 5000) : DAILY_RATE;
-    }
-
-    if(totalToAdd === 0){
-      // на всякий случай
-      await updateDoc(userRef, { lastDailyAdd: today.toISOString() });
-      return;
-    }
-
-    // Попытка сохранить изменение баланса и добавить запись
-    const res = await commitBalanceChange(totalToAdd, { forceAutomatic: true });
-
-    // Обновляем lastDailyAdd только если успешно записали (можно обновлять в любом случае, но лучше — при успешной записи)
-    if(res.balanceWritten){
-      await updateDoc(userRef, { lastDailyAdd: today.toISOString() });
-      animateBalanceChange(res.newBalance, lastBalance, totalToAdd);
-      lastBalance = res.newBalance;
-      updateHistory();
-      showToast(`Авт. начисление за ${daysPassed} дн. добавлено: ${totalToAdd.toLocaleString('ru-RU')}`);
-      console.log(`addMissedDailyAccrualsForUser: добавлено ${totalToAdd} за ${daysPassed} дней`);
-    } else {
-      console.warn('addMissedDailyAccrualsForUser: не удалось записать начисление', res);
-      showToast('Не удалось автоматически добавить начисления (см. консоль)');
-    }
-  }catch(e){
-    console.error('addMissedDailyAccrualsForUser error:', e);
-  }
-}
-
-// Button handler (manual)
-addBtn.onclick = async ()=>{
-  let value = parseFloat(manualAmount.value);
-  if(isNaN(value)){ showToast('Введите число!'); return; }
-  if(!auth.currentUser){
-    showToast('Войдите, чтобы изменить баланс вручную');
-    return;
-  }
-  addBtn.disabled = true;
-  try{
-    const res = await commitBalanceChange(value, { forceAutomatic: false });
-    animateBalanceChange(res.newBalance, lastBalance, value);
-    lastBalance = res.newBalance; manualAmount.value = "";
-    try{ await updateHistory(); }catch(e){ console.warn(e); }
-    if(res.balanceWritten && res.entryWritten) showToast('Изменение сохранено'); else showToast('Частичное/неудачное сохранение (см. консоль)');
-  }catch(e){ console.error(e); showToast('Ошибка при сохранении'); } finally { addBtn.disabled = false; }
-};
-
-// CLIENT daily fallback — перед добавлением проверяем, есть ли уже запись за сегодня, чтобы не дублировать
-async function addDailyRateForToday(){
-  // When server handles daily accruals, client should not duplicate
-  if(SERVER_HANDLES_DAILY){
-    console.log('client daily skipped: server handles daily accruals');
-    return;
-  }
-  
-  if(!auth.currentUser){
-    console.log('client daily skipped: not authenticated');
-    return;
-  }
-  try{
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    // проверяем, не добавлено ли уже сегодня
-    const qCheck = query(entriesColRef, where('dateString', '==', todayStr));
-    const snapCheck = await getDocs(qCheck);
-    if(!snapCheck.empty){
-      console.log('Сегодняшняя запись уже существует — пропускаем добавление');
-      return;
-    }
-
-    const todayRate = holidays.includes(todayStr) ? (DAILY_RATE + 5000) : DAILY_RATE;
-    const res = await commitBalanceChange(todayRate, { forceAutomatic: true });
-    animateBalanceChange(res.newBalance, lastBalance, todayRate);
-    lastBalance = res.newBalance;
-    updateHistory();
-    if(!(res.balanceWritten && res.entryWritten)) console.warn('client daily partial/failed:', res);
-  }catch(e){ console.error(e); }
-}
-
-// Client day watcher: проверяем смену локальной даты каждую минуту и запускаем фоллбек один раз
-(function setupClientDayWatcher(){
-  // Skip client day watcher when server handles daily accruals
-  if(SERVER_HANDLES_DAILY){
-    console.log('Client day watcher disabled: server handles daily accruals');
-    return;
-  }
-  
-  const KEY = 'client_last_daily_date';
-  function getTodayStr(){ return new Date().toISOString().split('T')[0]; }
-
-  // run once on load (in case the app started after midnight)
-  (async ()=>{
-    try{
-      const stored = localStorage.getItem(KEY);
-      const today = getTodayStr();
-      if(stored !== today){
-        await addDailyRateForToday();
-        localStorage.setItem(KEY,today);
-      }
-    }catch(e){ console.warn('client day watcher init error', e); }
-  })();
-
-  setInterval(async ()=>{
-    try{
-      const stored = localStorage.getItem(KEY);
-      const today = getTodayStr();
-      if(stored !== today){
-        await addDailyRateForToday();
-        localStorage.setItem(KEY,today);
-      }
-    }catch(e){ console.warn('client day watcher error', e); }
-  }, 60 * 1000);
-})();
-
-// Автоматическое сворачивание authForm при клике вне сайдбара
-document.addEventListener('click', (e)=>{
-  const sidebar = document.getElementById('sidebar');
-  if(!sidebar.contains(e.target)){
-    authForm.classList.remove('show');
-  }
-});
-
-// init balance and realtime — читаем баланс из Firestore и подписываемся
-async function initBalance(){
-  try{
-    const docSnap = await getDoc(balanceDocRef);
-    if(docSnap && docSnap.exists()){
-      const data = docSnap.data();
-      lastBalance = (typeof data.balance === "number") ? data.balance : Number(data.balance) || 0;
-    } else {
-      // если в БД нет документа — показываем 0 (не перезаписываем)
-      lastBalance = 0;
-    }
-    balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU');
-    updateHistory();
-
-    onSnapshot(balanceDocRef,(snapshotDoc)=>{
-      try{
-        if(snapshotDoc && snapshotDoc.exists()){
-          let newBalance = snapshotDoc.data().balance;
-          animateBalanceChange(newBalance,lastBalance,newBalance-lastBalance);
-          lastBalance = newBalance;
+        // Рендер каталога на форме
+        function renderCatalog() {
+            const container = document.getElementById('catalogContainer');
+            let html = '';
+            for (const [category, items] of Object.entries(CATALOG)) {
+                html += `<div class="catalog-category"><h4>${category}</h4>`;
+                items.forEach((item, idx) => {
+                    html += `
+                        <div class="catalog-item">
+                            <input type="checkbox" id="cat_${category}_${idx}" value="${item}">
+                            <label for="cat_${category}_${idx}" style="flex: 1; cursor: pointer;">${item}</label>
+                            <input type="text" placeholder="Кол-во (напр. 3 кг)" id="qty_${category}_${idx}">
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            container.innerHTML = html;
         }
-        updateHistory();
-      }catch(e){ console.error(e); }
-    }, (err)=>{ console.error('onSnapshot error:', err); });
 
-  }catch(e){ console.error('Ошибка инициализации баланса:', e); balanceDisplay.textContent = lastBalance.toLocaleString('ru-RU'); historyList.innerHTML = "Нет записей"; }
-}
-
-// auth state handling: читаем custom claims и включаем права для автоматизированных пользователей
-onAuthStateChanged(auth, async user=>{
-  if(user){
-    authStatus.textContent = "Вы вошли как " + user.email;
-    loginBtnEl.style.display = "none";
-    logoutBtnEl.style.display = "inline-block";
-    emailInput.style.display = passwordInput.style.display = "none";
-    authForm.classList.remove("show"); // сворачиваем
-    toggleAuth.textContent = "Пользователь авторизован";
-
-    try{
-      const idRes = await user.getIdTokenResult(true);
-      currentUserIsAutomated = Boolean(idRes.claims && idRes.claims.automated);
-      if(currentUserIsAutomated) showToast('Права: автоматизированный пользователь');
-      else showToast('Вход выполнен — ручное изменение доступно для авторизованных пользователей');
-    }catch(e){ console.warn('getIdTokenResult error', e); currentUserIsAutomated = false; }
-
-    // allow manual editing for any logged-in user
-    enableEditing(true);
-
-    (async ()=> {
-      try{
-        const snap = await getDoc(balanceDocRef);
-        if(!snap.exists() && currentUserIsAutomated){
-          // при первом инициализирующем автоматизированном пользователе можно записать стартовую сумму (если нужно)
-          await setDoc(balanceDocRef, { balance: lastBalance }, { merge:true });
+        async function fetchItems() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) return [];
+                const text = await response.text();
+                return text ? JSON.parse(text) : [];
+            } catch (e) {
+                console.error(e);
+                return [];
+            }
         }
-        // Запускаем клиентскую проверку пропущенных дней сразу после логина (если включена)
-        await addMissedDailyAccrualsForUser(user);
-        updateHistory();
-      }catch(e){ console.warn('Post-login init error:', e); }
-    })();
 
-  } else {
-    authStatus.textContent = "Не авторизованы";
-    loginBtnEl.style.display = "inline-block";
-    logoutBtnEl.style.display = "none";
-    emailInput.style.display = passwordInput.style.display = "inline-block";
-    toggleAuth.textContent = "Авторизация";
-    currentUserIsAutomated = false;
-    enableEditing(false);
-  }
-});
+        async function saveItems(items) {
+            await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify(items)
+            });
+        }
 
-// старт
-initBalance();
+        async function loadData() {
+            document.getElementById('loading').style.display = 'block';
+            const items = await fetchItems();
+            renderAdminTable(items);
+            document.getElementById('loading').style.display = 'none';
+        }
 
-</script>
+        function renderAdminTable(items) {
+            const tbody = document.getElementById('adminItemsList');
+            tbody.innerHTML = '';
+            let total = 0;
+
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">Пока никто ничего не добавил.</td></tr>`;
+            }
+
+            items.forEach((item, index) => {
+                total += Number(item.price || 0);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${escapeHtml(item.person)}</b></td>
+                    <td>${escapeHtml(item.food)}</td>
+                    <td>${escapeHtml(item.quantity)}</td>
+                    <td>
+                        <input type="number" step="any" value="${item.price || 0}" style="width: 80px; padding: 4px; margin:0;" onchange="updatePrice(${index}, this.value)">
+                    </td>
+                    <td>
+                        <button class="btn-danger" onclick="deleteItem(${index})">Удалить</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('totalAmount').innerText = total.toFixed(2);
+        }
+
+        // Отправка формы участником
+        document.getElementById('turbazaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const person = document.getElementById('personName').value.trim();
+            if (!person) return alert('Введите ваше имя!');
+
+            let newEntries = [];
+
+            // Сбор из каталога
+            for (const [category, items] of Object.entries(CATALOG)) {
+                items.forEach((item, idx) => {
+                    const checkbox = document.getElementById(`cat_${category}_${idx}`);
+                    const qtyInput = document.getElementById(`qty_${category}_${idx}`);
+                    if (checkbox && checkbox.checked) {
+                        const quantity = qtyInput.value.trim() || '1 шт';
+                        newEntries.push({
+                            person: person,
+                            food: item,
+                            quantity: quantity,
+                            price: 0
+                        });
+                        // Сброс выбора
+                        checkbox.checked = false;
+                        qtyInput.value = '';
+                    }
+                });
+            }
+
+            // Сбор кастомных элементов
+            const customNames = document.querySelectorAll('.custom-name');
+            const customQtys = document.querySelectorAll('.custom-qty');
+            for (let i = 0; i < customNames.length; i++) {
+                const name = customNames[i].value.trim();
+                const qty = customQtys[i].value.trim();
+                if (name) {
+                    newEntries.push({
+                        person: person,
+                        food: name,
+                        quantity: qty || '1 шт',
+                        price: 0
+                    });
+                    customNames[i].value = '';
+                    customQtys[i].value = '';
+                }
+            }
+
+            if (newEntries.length === 0) {
+                alert('Пожалуйста, выберите что-то из каталога или введите свое!');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            const items = await fetchItems();
+            const updatedItems = items.concat(newEntries);
+            await saveItems(updatedItems);
+            
+            document.getElementById('personName').value = '';
+            document.getElementById('loading').style.display = 'none';
+            
+            alert('Ваш список успешно добавлен!');
+            switchTab('admin'); // Перенаправляем в админку или общая таблица
+            loadData();
+        });
+
+        async function updatePrice(index, price) {
+            const items = await fetchItems();
+            if (items[index]) {
+                items[index].price = parseFloat(price) || 0;
+                await saveItems(items);
+                loadData();
+            }
+        }
+
+        async function deleteItem(index) {
+            const items = await fetchItems();
+            items.splice(index, 1);
+            await saveItems(items);
+            loadData();
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('tabForm').classList.remove('active');
+            document.getElementById('tabAdmin').classList.remove('active');
+            document.getElementById('btnTabForm').classList.remove('active');
+            document.getElementById('btnTabAdmin').classList.remove('active');
+
+            if (tabName === 'form') {
+                document.getElementById('tabForm').classList.add('active');
+                document.getElementById('btnTabForm').classList.add('active');
+            } else {
+                document.getElementById('tabAdmin').classList.add('active');
+                document.getElementById('btnTabAdmin').classList.add('active');
+                loadData();
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        // Инициализация при загрузке страницы
+        renderCatalog();
+        loadData();
+    </script>
 </body>
 </html>
