@@ -83,6 +83,10 @@
             margin-bottom: 10px;
         }
 
+        .btn-secondary:hover {
+            background-color: #333;
+        }
+
         .btn-danger {
             background-color: #8b0000;
             color: white;
@@ -104,8 +108,7 @@
             min-width: 700px;
         }
 
-        th,
-        td {
+        th, td {
             padding: 10px;
             border: 1px solid #333;
             text-align: left;
@@ -241,6 +244,120 @@
             font-size: 0.8rem;
         }
 
+
+        /* ======================================
+           ОКНО ПРОВЕРКИ СПИСКА
+        ====================================== */
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.82);
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 600px;
+            margin: 40px auto;
+            background: #1a1a1a;
+            border: 1px solid #d4af37;
+            border-radius: 14px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            background: #201d13;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #d4af37;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .review-name {
+            background: #242424;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .review-list {
+            margin-top: 10px;
+        }
+
+        .review-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            border-bottom: 1px solid #333;
+        }
+
+        .review-item:last-child {
+            border-bottom: none;
+        }
+
+        .review-food {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .review-qty {
+            color: #d4af37;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #333;
+        }
+
+        .modal-footer button {
+            flex: 1;
+        }
+
+        .btn-edit {
+            background: #2a2a2a;
+            color: #d4af37;
+            border: 1px solid #d4af37;
+            padding: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #d4af37, #aa771c);
+            color: #121212;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-save:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         @media (max-width: 600px) {
 
             body {
@@ -277,11 +394,29 @@
                 width: 100%;
                 padding: 9px;
             }
+
+            .modal {
+                margin: 10px auto;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+            }
+
+            .review-item {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 5px;
+            }
         }
     </style>
 </head>
 
 <body>
+
+    <!-- ======================================
+         ЗАГОЛОВОК
+    ======================================= -->
 
     <h1
         class="main-title"
@@ -296,9 +431,9 @@
     </div>
 
 
-    <!-- =========================
-         ФОРМА УЧАСТНИКА
-    ========================== -->
+    <!-- ======================================
+         ОСНОВНАЯ ФОРМА
+    ======================================= -->
 
     <div class="card">
 
@@ -341,7 +476,7 @@
                 class="btn-gold"
                 style="margin-top:15px"
             >
-                Отправить мой выбор
+                📋 Проверить список
             </button>
 
         </form>
@@ -363,16 +498,90 @@
     </div>
 
 
-    <!-- =========================
+    <!-- ======================================
+         МОДАЛЬНОЕ ОКНО ПРОВЕРКИ
+    ======================================= -->
+
+    <div
+        class="modal-overlay"
+        id="reviewModal"
+    >
+
+        <div class="modal">
+
+            <div class="modal-header">
+
+                <h2>
+                    📋 Проверьте ваш список
+                </h2>
+
+            </div>
+
+
+            <div class="modal-body">
+
+                <div class="review-name">
+
+                    👤 <b>Имя:</b>
+
+                    <span id="reviewPerson">
+                        -
+                    </span>
+
+                </div>
+
+
+                <h3>
+                    🛒 Ваши продукты:
+                </h3>
+
+
+                <div
+                    class="review-list"
+                    id="reviewList"
+                ></div>
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <button
+                    type="button"
+                    class="btn-edit"
+                    id="editListButton"
+                >
+                    ← Добавить / изменить
+                </button>
+
+
+                <button
+                    type="button"
+                    class="btn-save"
+                    id="saveListButton"
+                >
+                    ✅ Записать
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================
          АДМИНКА
-    ========================== -->
+    ======================================= -->
 
     <div
         class="card admin-section"
         id="adminSection"
     >
 
-        <h2>🔒 Панель организатора</h2>
+        <h2>
+            🔒 Панель организатора
+        </h2>
 
         <p style="color:#aaa">
             Здесь можно посмотреть общий список,
@@ -438,9 +647,11 @@
         <div class="total-box">
 
             Общая стоимость:
+
             <span id="totalAmount">
-                0
+                0.00
             </span>
+
             ₸
 
         </div>
@@ -459,25 +670,11 @@
 
                     <tr>
 
-                        <th>
-                            Имя
-                        </th>
-
-                        <th>
-                            Продукт
-                        </th>
-
-                        <th>
-                            Количество
-                        </th>
-
-                        <th>
-                            Дата
-                        </th>
-
-                        <th>
-                            Действие
-                        </th>
+                        <th>Имя</th>
+                        <th>Продукт</th>
+                        <th>Количество</th>
+                        <th>Дата</th>
+                        <th>Действие</th>
 
                     </tr>
 
@@ -507,9 +704,9 @@
     </div>
 
 
-    <!-- =========================
+    <!-- ======================================
          FIREBASE
-    ========================== -->
+    ======================================= -->
 
     <script type="module">
 
@@ -528,9 +725,9 @@
         } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 
-        /* =========================================
+        /* ======================================
            FIREBASE CONFIG
-        ========================================= */
+        ======================================= */
 
         const firebaseConfig = {
 
@@ -551,20 +748,19 @@
 
             appId:
                 "1:875462676883:web:5cb0b75c92e1247482d866"
+
         };
 
 
         const app =
-            initializeApp(firebaseConfig);
+            initializeApp(
+                firebaseConfig
+            );
 
 
         const db =
             getFirestore(app);
 
-
-        /* =========================================
-           КОЛЛЕКЦИЯ
-        ========================================= */
 
         const ordersCollection =
             collection(
@@ -573,60 +769,101 @@
             );
 
 
-        /* =========================================
+        /* ======================================
            КАТАЛОГ
-        ========================================= */
+        ======================================= */
 
         const CATALOG = {
 
             "🍖 Мясо и птица": [
+
                 "Шашлык (баранина/свинина)",
+
                 "Куриные крылышки / бедра",
+
                 "Купаты / колбаски"
+
             ],
 
             "🍅 Овощи и зелень": [
+
                 "Помидоры",
+
                 "Огурцы",
+
                 "Зелень (укроп, петрушка)",
+
                 "Лук репчатый"
+
             ],
 
             "🥨 Снеки": [
+
                 "Чечил (сыр-косичка)",
+
                 "Пивные колбаски / снеки",
+
                 "Сухарики / Кириешки",
+
                 "Чипсы",
+
                 "Орешки (арахис, фисташки)",
+
                 "Сушеная рыба / кальмары",
+
                 "Чесночные гренки"
+
             ],
 
             "🥤 Напитки": [
+
                 "Питьевая вода (5л)",
+
                 "Соки / Морс",
+
                 "Газировка"
+
             ],
 
             "🧂 Соусы и специи": [
+
                 "Кетчуп / Соус",
+
                 "Майонез",
+
                 "Соль / Специи"
+
             ],
 
             "🪵 Разное": [
+
                 "Уголь древесный",
+
                 "Жидкость для розжига",
+
                 "Одноразовая посуда",
+
                 "Салфетки"
+
             ]
 
         };
 
 
-        /* =========================================
-           ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-        ========================================= */
+        /* ======================================
+           ВРЕМЕННЫЙ СПИСОК
+           
+           ВАЖНО:
+           Пока пользователь не нажал
+           "Записать", Firebase НЕ трогаем.
+        ======================================= */
+
+        let pendingList = null;
+
+
+        /* ======================================
+           HTML ESCAPE
+        ======================================= */
 
         function escapeHtml(value) {
 
@@ -639,24 +876,45 @@
 
             return String(value)
 
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll('"', "&quot;")
-                .replaceAll("'", "&#039;");
+                .replaceAll(
+                    "&",
+                    "&amp;"
+                )
+
+                .replaceAll(
+                    "<",
+                    "&lt;"
+                )
+
+                .replaceAll(
+                    ">",
+                    "&gt;"
+                )
+
+                .replaceAll(
+                    '"',
+                    "&quot;"
+                )
+
+                .replaceAll(
+                    "'",
+                    "&#039;"
+                );
+
         }
 
 
         function money(value) {
 
-            return Number(value || 0)
-                .toLocaleString(
-                    "ru-RU",
-                    {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    }
-                );
+            return Number(
+                value || 0
+            ).toLocaleString(
+                "ru-RU",
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            );
 
         }
 
@@ -671,25 +929,31 @@
                     "status"
                 );
 
+
             box.textContent =
                 text;
+
 
             box.className =
                 "status " + type;
 
-            setTimeout(() => {
 
-                box.className =
-                    "status";
+            setTimeout(
+                () => {
 
-            }, 5000);
+                    box.className =
+                        "status";
+
+                },
+                5000
+            );
 
         }
 
 
-        /* =========================================
-           КАТАЛОГ
-        ========================================= */
+        /* ======================================
+           РЕНДЕР КАТАЛОГА
+        ======================================= */
 
         function renderCatalog() {
 
@@ -698,7 +962,9 @@
                     "catalogContainer"
                 );
 
+
             let html = "";
+
 
             for (
                 const [category, items]
@@ -706,42 +972,51 @@
             ) {
 
                 html += `
+
                     <div class="catalog-category">
 
                         <h4>
-                            ${escapeHtml(category)}
+                            ${escapeHtml(
+                                category
+                            )}
                         </h4>
+
                 `;
 
 
-                items.forEach(item => {
+                items.forEach(
+                    (item, index) => {
 
-                    html += `
+                        html += `
 
-                        <div class="catalog-item">
+                            <div class="catalog-item">
 
-                            <input
-                                type="checkbox"
-                                class="food-checkbox"
-                                data-food="${escapeHtml(item)}"
-                            >
+                                <input
+                                    type="checkbox"
+                                    class="food-checkbox"
+                                    id="food_${index}_${btoa(unescape(encodeURIComponent(item))).replace(/=/g, '')}"
+                                    data-food="${escapeHtml(item)}"
+                                >
 
-                            <label>
-                                ${escapeHtml(item)}
-                            </label>
+                                <label
+                                    for="food_${index}_${btoa(unescape(encodeURIComponent(item))).replace(/=/g, '')}"
+                                >
+                                    ${escapeHtml(item)}
+                                </label>
 
-                            <input
-                                type="text"
-                                class="catalog-qty"
-                                data-food="${escapeHtml(item)}"
-                                placeholder="Кол-во"
-                            >
+                                <input
+                                    type="text"
+                                    class="catalog-qty"
+                                    data-food="${escapeHtml(item)}"
+                                    placeholder="Кол-во"
+                                >
 
-                        </div>
+                            </div>
 
-                    `;
+                        `;
 
-                });
+                    }
+                );
 
 
                 html += `
@@ -757,9 +1032,9 @@
         }
 
 
-        /* =========================================
+        /* ======================================
            ДОБАВИТЬ СВОЮ ПОЗИЦИЮ
-        ========================================= */
+        ======================================= */
 
         window.addCustomRow =
             function() {
@@ -817,198 +1092,390 @@
             };
 
 
-        /* =========================================
-           ОТПРАВКА ЗАЯВКИ
-        ========================================= */
+        /* ======================================
+           СОБРАТЬ СПИСОК
+           
+           ЗДЕСЬ НЕТ addDoc!
+           
+           Только собираем данные.
+        ======================================= */
+
+        function collectFormData() {
+
+            const person =
+                document
+                    .getElementById(
+                        "personName"
+                    )
+                    .value
+                    .trim();
+
+
+            if (!person) {
+
+                alert(
+                    "Введите ваше имя!"
+                );
+
+                return null;
+
+            }
+
+
+            const items = [];
+
+
+            /* Каталог */
+
+            document
+                .querySelectorAll(
+                    ".food-checkbox"
+                )
+                .forEach(
+                    checkbox => {
+
+                        if (
+                            !checkbox.checked
+                        ) {
+                            return;
+                        }
+
+
+                        const food =
+                            checkbox.dataset.food;
+
+
+                        const qtyInput =
+                            document.querySelector(
+                                `.catalog-qty[data-food="${CSS.escape(food)}"]`
+                            );
+
+
+                        const quantity =
+                            qtyInput &&
+                            qtyInput.value.trim()
+                                ? qtyInput.value.trim()
+                                : "1 шт";
+
+
+                        items.push({
+
+                            food:
+                                food,
+
+                            quantity:
+                                quantity,
+
+                            unit_price:
+                                0,
+
+                            override_quantity:
+                                null
+
+                        });
+
+                    }
+                );
+
+
+            /* Свои позиции */
+
+            document
+                .querySelectorAll(
+                    ".custom-row"
+                )
+                .forEach(
+                    row => {
+
+                        const name =
+                            row
+                                .querySelector(
+                                    ".custom-name"
+                                )
+                                .value
+                                .trim();
+
+
+                        const quantity =
+                            row
+                                .querySelector(
+                                    ".custom-qty"
+                                )
+                                .value
+                                .trim();
+
+
+                        if (!name) {
+                            return;
+                        }
+
+
+                        items.push({
+
+                            food:
+                                name,
+
+                            quantity:
+                                quantity ||
+                                "1 шт",
+
+                            unit_price:
+                                0,
+
+                            override_quantity:
+                                null
+
+                        });
+
+                    }
+                );
+
+
+            if (
+                items.length === 0
+            ) {
+
+                alert(
+                    "Выберите продукты или добавьте свою позицию!"
+                );
+
+                return null;
+
+            }
+
+
+            return {
+
+                person:
+                    person,
+
+                items:
+                    items
+
+            };
+
+        }
+
+
+        /* ======================================
+           ПОКАЗАТЬ ОКНО ПРОВЕРКИ
+        ======================================= */
+
+        function openReview(
+            data
+        ) {
+
+            pendingList =
+                data;
+
+
+            document
+                .getElementById(
+                    "reviewPerson"
+                )
+                .textContent =
+                data.person;
+
+
+            const list =
+                document.getElementById(
+                    "reviewList"
+                );
+
+
+            list.innerHTML = "";
+
+
+            data.items.forEach(
+                item => {
+
+                    const row =
+                        document.createElement(
+                            "div"
+                        );
+
+
+                    row.className =
+                        "review-item";
+
+
+                    row.innerHTML = `
+
+                        <span class="review-food">
+                            ${escapeHtml(
+                                item.food
+                            )}
+                        </span>
+
+                        <span class="review-qty">
+                            ${escapeHtml(
+                                item.quantity
+                            )}
+                        </span>
+
+                    `;
+
+
+                    list.appendChild(
+                        row
+                    );
+
+                }
+            );
+
+
+            document
+                .getElementById(
+                    "reviewModal"
+                )
+                .style.display =
+                "block";
+
+
+            document.body.style.overflow =
+                "hidden";
+
+        }
+
+
+        /* ======================================
+           ЗАКРЫТЬ ОКНО ПРОВЕРКИ
+        ======================================= */
+
+        function closeReview() {
+
+            document
+                .getElementById(
+                    "reviewModal"
+                )
+                .style.display =
+                "none";
+
+
+            document.body.style.overflow =
+                "";
+
+
+            /*
+                ВАЖНО:
+                pendingList НЕ удаляем.
+                
+                Если пользователь нажал
+                "Добавить / изменить",
+                его данные остаются в форме.
+            */
+
+        }
+
+
+        /* ======================================
+           ПЕРВОЕ НАЖАТИЕ:
+           
+           ПРОВЕРИТЬ СПИСОК
+           
+           НИЧЕГО НЕ СОХРАНЯЕМ
+        ======================================= */
 
         document
-            .getElementById("turbazaForm")
+            .getElementById(
+                "turbazaForm"
+            )
             .addEventListener(
                 "submit",
-                async function(e) {
+                function(event) {
 
-                    e.preventDefault();
-
-
-                    const person =
-                        document
-                            .getElementById(
-                                "personName"
-                            )
-                            .value
-                            .trim();
+                    event.preventDefault();
 
 
-                    if (!person) {
+                    const data =
+                        collectFormData();
 
-                        alert(
-                            "Введите ваше имя!"
-                        );
 
+                    if (!data) {
                         return;
-
                     }
 
 
-                    const items = [];
+                    openReview(
+                        data
+                    );
+
+                }
+            );
 
 
-                    /*
-                        КАТАЛОГ
-                    */
+        /* ======================================
+           ДОБАВИТЬ / ИЗМЕНИТЬ
+        ======================================= */
 
-                    document
-                        .querySelectorAll(
-                            ".food-checkbox"
-                        )
-                        .forEach(
-                            checkbox => {
+        document
+            .getElementById(
+                "editListButton"
+            )
+            .addEventListener(
+                "click",
+                function() {
 
-                                if (
-                                    !checkbox.checked
-                                ) {
-                                    return;
-                                }
-
-
-                                const food =
-                                    checkbox.dataset.food;
-
-
-                                const qtyInput =
-                                    document.querySelector(
-                                        `.catalog-qty[data-food="${CSS.escape(food)}"]`
-                                    );
-
-
-                                const quantity =
-                                    qtyInput
-                                        ?.value
-                                        .trim() ||
-                                    "1 шт";
-
-
-                                items.push({
-
-                                    food:
-                                        food,
-
-                                    quantity:
-                                        quantity,
-
-                                    unit_price:
-                                        0,
-
-                                    override_quantity:
-                                        null
-
-                                });
-
-
-                                checkbox.checked =
-                                    false;
-
-
-                                if (qtyInput) {
-                                    qtyInput.value =
-                                        "";
-                                }
-
-                            }
-                        );
-
+                    closeReview();
 
                     /*
-                        СВОИ ПОЗИЦИИ
+                        Ничего не сохраняем.
+                        Пользователь может
+                        изменить форму.
                     */
 
-                    document
-                        .querySelectorAll(
-                            ".custom-row"
-                        )
-                        .forEach(
-                            row => {
-
-                                const name =
-                                    row.querySelector(
-                                        ".custom-name"
-                                    )
-                                    .value
-                                    .trim();
+                }
+            );
 
 
-                                const quantity =
-                                    row.querySelector(
-                                        ".custom-qty"
-                                    )
-                                    .value
-                                    .trim();
+        /* ======================================
+           ФИНАЛЬНАЯ ЗАПИСЬ В FIREBASE
+           
+           ТОЛЬКО ЗДЕСЬ addDoc!
+        ======================================= */
 
-
-                                if (!name) {
-                                    return;
-                                }
-
-
-                                items.push({
-
-                                    food:
-                                        name,
-
-                                    quantity:
-                                        quantity ||
-                                        "1 шт",
-
-                                    unit_price:
-                                        0,
-
-                                    override_quantity:
-                                        null
-
-                                });
-
-                            }
-                        );
-
+        document
+            .getElementById(
+                "saveListButton"
+            )
+            .addEventListener(
+                "click",
+                async function() {
 
                     if (
-                        items.length === 0
+                        !pendingList
                     ) {
-
-                        alert(
-                            "Выберите продукты или добавьте свою позицию!"
-                        );
 
                         return;
 
                     }
 
 
-                    const loading =
+                    const button =
                         document.getElementById(
-                            "loading"
+                            "saveListButton"
                         );
 
 
-                    loading.style.display =
-                        "block";
+                    button.disabled =
+                        true;
+
+
+                    button.textContent =
+                        "⏳ Записываем...";
 
 
                     try {
-
-                        /*
-                            СОХРАНЯЕМ В FIRESTORE
-                        */
 
                         await addDoc(
                             ordersCollection,
                             {
 
                                 person:
-                                    person,
+                                    pendingList.person,
 
                                 items:
-                                    items,
+                                    pendingList.items,
 
                                 createdAt:
                                     new Date()
@@ -1019,28 +1486,73 @@
 
 
                         /*
-                            ОЧИСТКА
+                            Сохранение успешно.
                         */
+
+                        closeReview();
+
 
                         document
                             .getElementById(
                                 "personName"
                             )
-                            .value = "";
+                            .value =
+                            "";
 
+
+                        /*
+                            Сбрасываем каталог
+                        */
+
+                        document
+                            .querySelectorAll(
+                                ".food-checkbox"
+                            )
+                            .forEach(
+                                checkbox => {
+
+                                    checkbox.checked =
+                                        false;
+
+                                }
+                            );
+
+
+                        document
+                            .querySelectorAll(
+                                ".catalog-qty"
+                            )
+                            .forEach(
+                                input => {
+
+                                    input.value =
+                                        "";
+
+                                }
+                            );
+
+
+                        /*
+                            Сбрасываем свои позиции
+                        */
 
                         document
                             .getElementById(
                                 "customItemsContainer"
                             )
-                            .innerHTML = "";
+                            .innerHTML =
+                            "";
 
 
                         addCustomRow();
 
 
+                        pendingList =
+                            null;
+
+
                         showStatus(
-                            "✅ Ваш список успешно сохранён!",
+                            "✅ Ваш список успешно записан!",
                             "success"
                         );
 
@@ -1048,20 +1560,24 @@
                     } catch (error) {
 
                         console.error(
+                            "Firebase error:",
                             error
                         );
 
 
                         showStatus(
-                            "Ошибка сохранения: " +
+                            "❌ Не удалось записать список: " +
                             error.message,
                             "error"
                         );
 
                     } finally {
 
-                        loading.style.display =
-                            "none";
+                        button.disabled =
+                            false;
+
+                        button.textContent =
+                            "✅ Записать";
 
                     }
 
@@ -1069,9 +1585,9 @@
             );
 
 
-        /* =========================================
-           ЗАГРУЗКА ВСЕХ ЗАКАЗОВ
-        ========================================= */
+        /* ======================================
+           ЗАГРУЗКА ЗАКАЗОВ
+        ======================================= */
 
         async function getOrders() {
 
@@ -1105,18 +1621,20 @@
         }
 
 
-        /* =========================================
-           АДМИНКА
-        ========================================= */
+        /* ======================================
+           АДМИНКА — 10 НАЖАТИЙ
+        ======================================= */
 
         let clickCount = 0;
 
 
         document
-            .getElementById("mainTitle")
+            .getElementById(
+                "mainTitle"
+            )
             .addEventListener(
                 "click",
-                () => {
+                function() {
 
                     clickCount++;
 
@@ -1164,17 +1682,23 @@
                     .style.display =
                     "none";
 
+
                 window.scrollTo({
-                    top: 0,
-                    behavior: "smooth"
+
+                    top:
+                        0,
+
+                    behavior:
+                        "smooth"
+
                 });
 
             };
 
 
-        /* =========================================
+        /* ======================================
            ЗАГРУЗКА АДМИНКИ
-        ========================================= */
+        ======================================= */
 
         async function loadAdmin() {
 
@@ -1227,9 +1751,9 @@
         }
 
 
-        /* =========================================
+        /* ======================================
            ОБЩАЯ ТАБЛИЦА
-        ========================================= */
+        ======================================= */
 
         function renderSummary(
             orders
@@ -1241,15 +1765,12 @@
                 );
 
 
-            tbody.innerHTML = "";
+            tbody.innerHTML =
+                "";
 
 
             const groups = {};
 
-
-            /*
-                СОБИРАЕМ ВСЕ ПРОДУКТЫ
-            */
 
             orders.forEach(
                 order => {
@@ -1264,7 +1785,7 @@
 
 
                     order.items.forEach(
-                        (item, itemIndex) => {
+                        item => {
 
                             const key =
                                 item.food
@@ -1308,10 +1829,6 @@
                                 groups[key];
 
 
-                            /*
-                                ЦЕНА
-                            */
-
                             if (
                                 item.unit_price !==
                                 undefined
@@ -1325,10 +1842,6 @@
                             }
 
 
-                            /*
-                                ИЗМЕНЁННОЕ КОЛИЧЕСТВО
-                            */
-
                             if (
                                 item.override_quantity !==
                                     undefined &&
@@ -1341,10 +1854,6 @@
 
                             }
 
-
-                            /*
-                                РАЗБИРАЕМ КОЛИЧЕСТВО
-                            */
 
                             const match =
                                 String(
@@ -1427,7 +1936,8 @@
             );
 
 
-            let total = 0;
+            let total =
+                0;
 
 
             const keys =
@@ -1453,12 +1963,14 @@
 
                 `;
 
+
                 document
                     .getElementById(
                         "totalAmount"
                     )
                     .textContent =
                     "0.00";
+
 
                 return;
 
@@ -1478,11 +1990,6 @@
 
                     let displayQuantity;
 
-
-                    /*
-                        ЕСЛИ АДМИН ВРУЧНУЮ
-                        ПОМЕНЯЛ КОЛИЧЕСТВО
-                    */
 
                     if (
                         group.override !==
@@ -1513,12 +2020,16 @@
                                         )
                                 );
 
+
                             if (
                                 isNaN(
                                     quantity
                                 )
                             ) {
-                                quantity = 0;
+
+                                quantity =
+                                    0;
+
                             }
 
                         }
@@ -1533,9 +2044,10 @@
                                 Number.isInteger(
                                     group.quantity
                                 )
-                                ? group.quantity
-                                : group.quantity
-                                    .toFixed(1);
+                                    ? group.quantity
+                                    : group.quantity
+                                        .toFixed(1);
+
 
                             if (
                                 group.unit
@@ -1552,7 +2064,8 @@
                             displayQuantity =
                                 "См. детали";
 
-                            quantity = 0;
+                            quantity =
+                                0;
 
                         }
 
@@ -1591,9 +2104,6 @@
                                 value="${escapeHtml(
                                     displayQuantity
                                 )}"
-                                data-group="${escapeHtml(
-                                    key
-                                )}"
                                 class="group-quantity"
                             >
 
@@ -1604,10 +2114,9 @@
                             <input
                                 type="number"
                                 step="any"
-                                value="${group.price || ""}"
-                                data-group="${escapeHtml(
-                                    key
-                                )}"
+                                value="${
+                                    group.price || ""
+                                }"
                                 class="group-price"
                                 placeholder="Цена"
                             >
@@ -1615,20 +2124,19 @@
                         </td>
 
                         <td>
+
                             <b>
                                 ${money(
                                     rowTotal
                                 )} ₸
                             </b>
+
                         </td>
 
                         <td>
 
                             <button
                                 class="btn-danger delete-group"
-                                data-group="${escapeHtml(
-                                    key
-                                )}"
                             >
                                 Удалить всё
                             </button>
@@ -1637,10 +2145,6 @@
 
                     `;
 
-
-                    /*
-                        СОХРАНЕНИЕ КОЛИЧЕСТВА
-                    */
 
                     tr
                         .querySelector(
@@ -1659,10 +2163,6 @@
                         );
 
 
-                    /*
-                        СОХРАНЕНИЕ ЦЕНЫ
-                    */
-
                     tr
                         .querySelector(
                             ".group-price"
@@ -1679,10 +2179,6 @@
                             }
                         );
 
-
-                    /*
-                        УДАЛЕНИЕ ГРУППЫ
-                    */
 
                     tr
                         .querySelector(
@@ -1718,9 +2214,9 @@
         }
 
 
-        /* =========================================
+        /* ======================================
            ДЕТАЛЬНАЯ ТАБЛИЦА
-        ========================================= */
+        ======================================= */
 
         function renderRaw(
             orders
@@ -1732,7 +2228,8 @@
                 );
 
 
-            tbody.innerHTML = "";
+            tbody.innerHTML =
+                "";
 
 
             if (
@@ -1780,7 +2277,8 @@
                                 );
 
 
-                            let date = "-";
+                            let date =
+                                "-";
 
 
                             if (
@@ -1875,9 +2373,9 @@
         }
 
 
-        /* =========================================
-           ИЗМЕНИТЬ ЦЕНУ ПРОДУКТА
-        ========================================= */
+        /* ======================================
+           ИЗМЕНЕНИЕ ЦЕНЫ
+        ======================================= */
 
         async function updateGroupPrice(
             groupKey,
@@ -1923,6 +2421,7 @@
                                     changed =
                                         true;
 
+
                                     return {
 
                                         ...item,
@@ -1941,7 +2440,9 @@
                         );
 
 
-                    if (changed) {
+                    if (
+                        changed
+                    ) {
 
                         await updateDoc(
                             doc(
@@ -1980,9 +2481,9 @@
         }
 
 
-        /* =========================================
-           ИЗМЕНИТЬ КОЛИЧЕСТВО
-        ========================================= */
+        /* ======================================
+           ИЗМЕНЕНИЕ КОЛИЧЕСТВА
+        ======================================= */
 
         async function updateGroupQuantity(
             groupKey,
@@ -2018,6 +2519,7 @@
                                     changed =
                                         true;
 
+
                                     return {
 
                                         ...item,
@@ -2036,7 +2538,9 @@
                         );
 
 
-                    if (changed) {
+                    if (
+                        changed
+                    ) {
 
                         await updateDoc(
                             doc(
@@ -2075,9 +2579,9 @@
         }
 
 
-        /* =========================================
+        /* ======================================
            УДАЛИТЬ ОДНУ ПОЗИЦИЮ
-        ========================================= */
+        ======================================= */
 
         async function deleteItem(
             orderId,
@@ -2094,6 +2598,14 @@
 
 
             try {
+
+                const orderRef =
+                    doc(
+                        db,
+                        "turbaza_orders",
+                        orderId
+                    );
+
 
                 const orders =
                     await getOrders();
@@ -2127,21 +2639,13 @@
                 ) {
 
                     await deleteDoc(
-                        doc(
-                            db,
-                            "turbaza_orders",
-                            orderId
-                        )
+                        orderRef
                     );
 
                 } else {
 
                     await updateDoc(
-                        doc(
-                            db,
-                            "turbaza_orders",
-                            orderId
-                        ),
+                        orderRef,
                         {
                             items:
                                 items
@@ -2171,9 +2675,9 @@
         }
 
 
-        /* =========================================
+        /* ======================================
            УДАЛИТЬ ВЕСЬ ПРОДУКТ
-        ========================================= */
+        ======================================= */
 
         async function deleteGroup(
             groupKey
@@ -2267,9 +2771,34 @@
         }
 
 
-        /* =========================================
+        /* ======================================
+           ЗАКРЫТИЕ МОДАЛКИ ПО НАЖАТИЮ НА ФОН
+        ======================================= */
+
+        document
+            .getElementById(
+                "reviewModal"
+            )
+            .addEventListener(
+                "click",
+                function(event) {
+
+                    if (
+                        event.target ===
+                        this
+                    ) {
+
+                        closeReview();
+
+                    }
+
+                }
+            );
+
+
+        /* ======================================
            ЗАПУСК
-        ========================================= */
+        ======================================= */
 
         renderCatalog();
 
@@ -2278,4 +2807,4 @@
     </script>
 
 </body>
-    </html>
+            </html>
