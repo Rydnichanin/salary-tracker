@@ -198,7 +198,7 @@
     <!-- Секретная админ-панель -->
     <div class="card admin-section" id="adminSection">
         <h2>🔒 Секретная панель организатора</h2>
-        <p style="color: #aaa;">Укажите цену за единицу (за 1 кг / литр / шт), и сайт автоматически рассчитает общую сумму закупки.</p>
+        <p style="color: #aaa;">Здесь вы можете изменить итоговое количество (например, скорректировать на всех) и указать цену за единицу для расчета суммы.</p>
         
         <div id="adminLoading" class="loading">Загрузка данных...</div>
 
@@ -208,7 +208,7 @@
                 <thead>
                     <tr>
                         <th>Продукт</th>
-                        <th>Общее кол-во</th>
+                        <th>Итоговое кол-во (можно править)</th>
                         <th>Цена за ед. (₸)</th>
                         <th>Итого за всё (₸)</th>
                         <th>Действие</th>
@@ -347,12 +347,16 @@
                     groups[key] = {
                         foodName: item.food,
                         entries: [],
-                        unitPrice: item.unit_price !== undefined ? item.unit_price : 0
+                        unitPrice: item.unit_price !== undefined ? item.unit_price : 0,
+                        overrideQuantity: item.override_quantity !== undefined ? item.override_quantity : null
                     };
                 }
                 groups[key].entries.push(item);
                 if (item.unit_price !== undefined) {
                     groups[key].unitPrice = item.unit_price;
+                }
+                if (item.override_quantity !== undefined && item.override_quantity !== null) {
+                    groups[key].overrideQuantity = item.override_quantity;
                 }
             });
 
@@ -381,25 +385,31 @@
                     }
                 });
 
-                let totalQtyDisplay = '';
-                let rowTotalPrice = 0;
+                // Если администратор уже задал переопределенное количество, используем его для расчетов
+                let effectiveQtyNumber = sumNum;
+                let displayQuantityValue = group.overrideQuantity !== null ? group.overrideQuantity : (canSum ? (Number.isInteger(sumNum) ? sumNum + (unit ? ' ' + unit : '') : sumNum.toFixed(1) + (unit ? ' ' + unit : '')) : group.entries.map(e => e.quantity).join(', '));
 
-                if (canSum) {
-                    const formattedSum = Number.isInteger(sumNum) ? sumNum : sumNum.toFixed(1);
-                    totalQtyDisplay = `<b>${formattedSum} ${unit}</b>`;
-                    rowTotalPrice = sumNum * group.unitPrice;
-                } else {
-                    let parts = group.entries.map(e => e.quantity);
-                    totalQtyDisplay = `<b>${parts.join(', ')}</b> (разные ед.)`;
-                    rowTotalPrice = group.unitPrice; 
+                // Попытка извлечь число для расчета стоимости из измененного количества
+                let currentNumForCalc = sumNum;
+                if (group.overrideQuantity !== null) {
+                    const matchOverride = String(group.overrideQuantity).trim().match(/^([\d.,]+)/);
+                    if (matchOverride) {
+                        const parsed = parseFloat(matchOverride[1].replace(',', '.'));
+                        if (!isNaN(parsed)) currentNumForCalc = parsed;
+                    }
+                } else if (!canSum) {
+                    currentNumForCalc = 1; // если разные ед. и не переопределено, умножаем на 1 или единичную цену
                 }
 
+                let rowTotalPrice = currentNumForCalc * group.unitPrice;
                 grandTotal += rowTotalPrice;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><b>${escapeHtml(group.foodName)}</b></td>
-                    <td>${totalQtyDisplay}</td>
+                    <td>
+                        <input type="text" value="${displayQuantityValue}" onchange="updateGroupQuantity('${key}', this.value)" placeholder="Общее кол-во">
+                    </td>
                     <td>
                         <input type="number" step="any" value="${group.unitPrice || ''}" onchange="updateGroupUnitPrice('${key}', this.value)" placeholder="За ед. ₸">
                     </td>
@@ -450,6 +460,17 @@
             loadAdminData();
         }
 
+        async function updateGroupQuantity(groupKey, newQuantity) {
+            const items = await fetchItems();
+            items.forEach(item => {
+                if (item.food.trim().toLowerCase() === groupKey) {
+                    item.override_quantity = newQuantity.trim();
+                }
+            });
+            await saveItems(items);
+            loadAdminData();
+        }
+
         async function deleteGroup(groupKey) {
             if (!confirm('Удалить эту позицию со всеми запросами?')) return;
             const items = await fetchItems();
@@ -478,7 +499,7 @@
                     const qtyInput = document.getElementById(`qty_${category}_${idx}`);
                     if (checkbox && checkbox.checked) {
                         const quantity = qtyInput.value.trim() || '1 шт';
-                        newEntries.push({ person, food: item, quantity, unit_price: 0 });
+                        newEntries.push({ person, food: item, quantity, unit_price: 0, override_quantity: null });
                         checkbox.checked = false;
                         qtyInput.value = '';
                     }
@@ -492,7 +513,7 @@
                 const name = nameInput.value.trim();
                 const qty = qtyInput.value.trim();
                 if (name) {
-                    newEntries.push({ person, food: name, quantity: qty || '1 шт', unit_price: 0 });
+                    newEntries.push({ person, food: name, quantity: qty || '1 шт', unit_price: 0, override_quantity: null });
                 }
             });
 
