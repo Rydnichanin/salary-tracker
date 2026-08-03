@@ -55,6 +55,22 @@
             background: linear-gradient(135deg, #f1c40f, #d4af37);
             box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
         }
+        .btn-secondary {
+            background-color: #2a2a2a;
+            color: #d4af37;
+            border: 1px solid #d4af37;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: 0.3s;
+            margin-bottom: 10px;
+        }
+        .btn-secondary:hover {
+            background-color: #333;
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -145,6 +161,11 @@
             color: #555;
             margin-bottom: 15px;
         }
+        .custom-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -165,15 +186,9 @@
 
             <h3>2. Добавить свое (чего нет в списке):</h3>
             <div id="customItemsContainer">
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <input type="text" placeholder="Название (например, Лаваш)" class="custom-name" style="flex: 2; margin:0;">
-                    <input type="text" placeholder="Кол-во (3 шт)" class="custom-qty" style="flex: 1; margin:0;">
-                </div>
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <input type="text" placeholder="Название еще чего-то" class="custom-name" style="flex: 2; margin:0;">
-                    <input type="text" placeholder="Кол-во" class="custom-qty" style="flex: 1; margin:0;">
-                </div>
+                <!-- Динамические строки будут добавляться сюда -->
             </div>
+            <button type="button" class="btn-secondary" onclick="addCustomRow()">+ Добавить еще позицию</button>
 
             <button type="submit" class="btn-gold" style="margin-top: 15px;">Отправить мой выбор</button>
         </form>
@@ -274,6 +289,18 @@
             container.innerHTML = html;
         }
 
+        function addCustomRow() {
+            const container = document.getElementById('customItemsContainer');
+            const row = document.createElement('div');
+            row.className = 'custom-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Название (например, Лаваш)" class="custom-name" style="flex: 2; margin:0;">
+                <input type="text" placeholder="Кол-во (3 шт)" class="custom-qty" style="flex: 1; margin:0;">
+                <button type="button" class="btn-danger" style="padding: 0 10px;" onclick="this.parentElement.remove()">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
         async function fetchItems() {
             try {
                 const response = await fetch(API_URL);
@@ -301,7 +328,6 @@
             document.getElementById('adminLoading').style.display = 'none';
         }
 
-        // Сводная таблица с расчетом по цене за единицу
         function renderSummaryTable(items) {
             const tbody = document.getElementById('summaryItemsList');
             tbody.innerHTML = '';
@@ -364,7 +390,6 @@
                 } else {
                     let parts = group.entries.map(e => e.quantity);
                     totalQtyDisplay = `<b>${parts.join(', ')}</b> (разные ед.)`;
-                    // Если единицы разные, цена за ед. работает как фиксированная цена за всю позицию
                     rowTotalPrice = group.unitPrice; 
                 }
 
@@ -388,7 +413,6 @@
             document.getElementById('totalAmount').innerText = grandTotal.toFixed(2);
         }
 
-        // Детальная таблица (кто что просил)
         function renderRawTable(items) {
             const tbody = document.getElementById('rawItemsList');
             tbody.innerHTML = '';
@@ -460,17 +484,16 @@
                 });
             }
 
-            const customNames = document.querySelectorAll('.custom-name');
-            const customQtys = document.querySelectorAll('.custom-qty');
-            for (let i = 0; i < customNames.length; i++) {
-                const name = customNames[i].value.trim();
-                const qty = customQtys[i].value.trim();
+            const customRows = document.querySelectorAll('.custom-row');
+            customRows.forEach(row => {
+                const nameInput = row.querySelector('.custom-name');
+                const qtyInput = row.querySelector('.custom-qty');
+                const name = nameInput.value.trim();
+                const qty = qtyInput.value.trim();
                 if (name) {
                     newEntries.push({ person, food: name, quantity: qty || '1 шт', unit_price: 0 });
-                    customNames[i].value = '';
-                    customQtys[i].value = '';
                 }
-            }
+            });
 
             if (newEntries.length === 0) {
                 alert('Выберите что-то из каталога или введите свое!');
@@ -482,6 +505,7 @@
             await saveItems(items.concat(newEntries));
             
             document.getElementById('personName').value = '';
+            document.getElementById('customItemsContainer').innerHTML = ''; // Очищаем кастомные поля
             document.getElementById('loading').style.display = 'none';
             
             alert('Ваш список успешно отправлен!');
@@ -493,6 +517,8 @@
         }
 
         renderCatalog();
+        // Добавим сразу одну пустую строчку для удобства при загрузке
+        addCustomRow();
     </script>
 </body>
 </html>
